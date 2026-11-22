@@ -1,0 +1,93 @@
+const { createApp, nextTick } = await import('vue')
+const { createPinia } = await import('pinia')
+const { default: App } = await import('../src/App.vue')
+const { default: router } = await import('../src/router/index.js')
+const { useAuthStore } = await import('../src/stores/auth.js')
+const { useScheduleStore } = await import('../src/stores/schedule.js')
+const problems = []
+const app = createApp(App); app.config.errorHandler = (e) => problems.push('ERR ' + e.message + ' ' + (e.stack||'').split('\n').slice(1,3).join(' | ')); app.config.warnHandler = (m) => problems.push('WARN ' + m)
+const pinia = createPinia(); app.use(pinia); app.use(router)
+const auth = useAuthStore(), store = useScheduleStore()
+app.mount('#app')
+const wait = (ms = 30) => new Promise(r => setTimeout(r, ms))
+const text = () => document.body.textContent.replace(/\s+/g, ' ')
+let fails = 0; const ok = (n, v) => { if (!v) fails++; console.log(v ? 'PASS' : 'FAIL', n) }
+async function go(path) { await router.push(path); await wait(60); await nextTick() }
+const click = async (el) => { el.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); await wait(30) }
+const btn = (label, root = document) => [...root.querySelectorAll('button')].find(b => b.textContent.trim().includes(label))
+const bx = (label) => [...document.querySelectorAll('button')].filter(b => b.textContent.trim() === label).pop()
+const setVal = async (el, v, ev = 'input') => { el.value = v; el.dispatchEvent(new window.Event(ev, { bubbles: true })); await wait(10) }
+
+// --- Auth
+await go('/signup'); ok('signup page', text().includes('Sign up'))
+ok('guest blocked from /chair', (await go('/chair/dashboard'), router.currentRoute.value.path === '/login'))
+let res = auth.login({ email: 'bad@x.ph', password: 'x' }); ok('bad login rejected', !res.ok)
+ok('unknown faculty cannot register', !auth.register({ name: 'Nobody', email: 'n@x.ph', password: 'abcd1234' }).ok)
+ok('register Jose Lim', auth.register({ name: 'Jose Lim', email: 'jose.lim@dnsc.edu.ph', password: 'abcd1234' }).ok)
+ok('duplicate email blocked', !auth.register({ name: 'Jose Lim', email: 'jose.lim@dnsc.edu.ph', password: 'abcd1234' }).ok)
+
+const navCheck = async (who, prefix, pages) => {
+  for (const [path, needle] of pages) { await go(`/${prefix}/${path}`); ok(`${who} ${path}`, text().includes(needle) && router.currentRoute.value.path === `/${prefix}/${path}`) }
+}
+// --- Chair
+auth.login({ email: 'chair@dnsc.edu.ph', password: 'password123' }); await go('/chair/dashboard')
+ok('chair dashboard', text().includes('Scheduling overview for BS Information Technology'))
+ok('chair blocked from dean area', (await go('/dean/dashboard'), router.currentRoute.value.path === '/chair/dashboard'))
+await navCheck('chair', 'chair', [['create-schedule', 'Create Schedule'], ['room-timetables', 'Room Timetables'], ['instructor-timetables', 'Instructor Timetables']])
+await go('/chair/create-schedule')
+await click(btn('Add Class')); ok('Add Class modal opens', text().includes('Choose a class set'))
+await click(btn('Add Courses')); ok('add w/o set shows validation', text().includes('Select a class set'))
+const sel = [...document.querySelectorAll('select')].pop(); await setVal(sel, 's1', 'change')
+const boxes = [...document.querySelectorAll('input[type=checkbox]')].filter(c => !c.disabled)
+ok('courses selectable after choosing set', boxes.length > 0)
+boxes[0].checked = true; boxes[0].dispatchEvent(new window.Event('change', { bubbles: true })); await wait()
+ok('selected count', text().includes('1 selected'))
+const n0 = store.classCourses.length; await click(btn('Add Courses')); ok('course added to store', store.classCourses.length === n0 + 1)
+// open an assignment modal on an existing course and walk to the room modal
+const card = [...document.querySelectorAll('button')].find(b => b.textContent.includes('IT 311')); await click(card)
+ok('course assignment modal', text().includes('Course assignment') && text().includes('Assigned instructor'))
+await click(btn('+ Assign Room')); ok('room modal prompts class type first', text().includes('Choose a class type'))
+const radio = document.querySelector('input[type=radio][value=laboratory]'); radio.checked = true; radio.dispatchEvent(new window.Event('change', { bubbles: true })); await wait()
+ok('lab shows only IT labs', text().includes('IT Lab 1') && !text().includes('CS Lab 1') && !text().includes('Room 101'))
+const radio2 = document.querySelector('input[type=radio][value=discussion]'); radio2.checked = true; radio2.dispatchEvent(new window.Event('change', { bubbles: true })); await wait()
+ok('discussion hides other programs', !text().includes('CS Room 101') && text().includes('Room 103') && text().includes('Recommended'))
+const roomCard = [...document.querySelectorAll('button')].find(b => b.textContent.includes('IT Room 202')); await click(roomCard)
+ok('room assignment modal with timetable', text().includes('Room information') && text().includes('Weekly timetable'))
+await click(btn('Save & Exit')); ok('saving empty form blocked', text().includes('Select at least one day'))
+// --- Dean
+auth.logout(); auth.login({ email: 'dean@dnsc.edu.ph', password: 'password123' }); await go('/dean/dashboard')
+ok('dean dashboard', text().includes('Welcome, Dean Cruz') && text().includes('Total classrooms'))
+await navCheck('dean', 'dean', [['room-timetables', 'Room Timetables'], ['instructor-timetables', 'Instructor Timetables'], ['reservation-requests', 'Reservation Requests']])
+ok('dean does not see other-institute request', !text().includes('Paolo Dizon'))
+const pend = [...store.reservationsForInstitute('ioc')].filter(r => r.status === 'Pending').sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0]
+const row = [...document.querySelectorAll('tbody tr')].find(tr => tr.textContent.includes('Review')); await click(row)
+ok('details modal opens', text().includes('Reservation details') && text().includes('Current room availability'))
+await click(bx('Reject')); await click(btn('Confirm rejection')); ok('reject needs reason', text().includes('Please give a rejection reason'))
+await click(btn('Back')); await click([...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Approve')); ok('approve asks confirmation', text().includes('Approve this reservation?'))
+const confirmBtn = [...document.querySelectorAll('button')].filter(b => b.textContent.trim() === 'Approve').pop(); await click(confirmBtn); await wait(900)
+const decided = store.reservations.find(r => r.id === pend.id); ok('approved in store + email logged', decided.status === 'Approved' && store.emails.some(e => e.resId === pend.id))
+// --- Instructor
+auth.logout(); auth.login({ email: 'instructor@dnsc.edu.ph', password: 'password123' }); await go('/instructor/dashboard')
+ok('instructor dashboard prompts course selection', text().includes('Select courses'))
+await navCheck('instructor', 'instructor', [['my-courses', 'My Courses'], ['room-timetables', 'Room Timetables'], ['my-reservations', 'My Reservations']])
+await go('/instructor/my-timetable'); ok('timetable gated until courses saved', text().includes('Select your courses first'))
+await go('/instructor/my-courses')
+const cbs = [...document.querySelectorAll('input[type=checkbox]')]; ok('only authorized courses listed', cbs.length === 4)
+await click(btn('Save Selection')); ok('save disabled when unchanged', !text().includes('saved to your semester'))
+cbs[0].checked = true; cbs[0].dispatchEvent(new window.Event('change', { bubbles: true })); await wait(); await click(btn('Save Selection'))
+ok('selection saved', store.selectedCourses('f3').length === 1)
+await go('/instructor/my-timetable'); ok('my timetable unlocked', text().includes('My Timetable') && !text().includes('Select your courses first'))
+await go('/instructor/room-timetables'); await click(btn('Reserve')); ok('reserve modal opens', text().includes('Reserve classroom') && text().includes('Room availability'))
+await click(btn('Submit request')); ok('empty form shows validation', text().includes('Set both a start time') && text().includes('purpose'))
+const before = store.reservations.length
+const inputs = document.querySelectorAll('input[type=time]'); await setVal(inputs[0], '16:00'); await setVal(inputs[1], '17:00')
+await setVal(document.querySelector('textarea'), 'Extra review session'); await click(btn('Submit request'))
+ok('request submitted as Pending', store.reservations.length === before + 1 && store.reservations.at(-1).status === 'Pending')
+await go('/instructor/my-reservations'); ok('shows in My Reservations', text().includes('Extra review session') && text().includes('Pending'))
+ok('approved confirmation visible', (await click([...document.querySelectorAll('tbody tr')].find(tr => tr.textContent.includes('Approved'))), text().includes('Confirmation email sent')))
+// pagination + filters
+await click(btn('Close')); const tab = btn('Rejected'); await click(tab); ok('status filter works', [...document.querySelectorAll('tbody tr')].every(tr => tr.textContent.includes('Rejected') || tr.textContent.includes('No requests')))
+// Date range controls
+await go('/instructor/room-timetables'); const before2 = text(); await click(btn('Next week')); ok('next week changes range', text() !== before2)
+console.log('--- Vue warnings/errors:', problems.length); problems.slice(0, 8).forEach(p => console.log(p.slice(0, 200)))
+console.log(fails || problems.length ? `${fails} FAILED, ${problems.length} issues` : 'ALL PASSED'); process.exit(fails ? 1 : 0)
