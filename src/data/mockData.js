@@ -152,9 +152,9 @@ export const facultyCourses = {
   f11: ['c9'],
 }
 export const notifications = [
-  { id: 'n1', facultyId: 'f2', text: 'Carla Mendoza requested the Audio-Visual Room.', at: ago(10), read: false },
-  { id: 'n2', facultyId: 'f2', text: 'Mark Villanueva requested Room 305.', at: ago(5), read: false },
-  { id: 'n4', facultyId: 'f2', text: 'Carla Mendoza asked to cancel her approved reservation of the Audio-Visual Room.', at: ago(2), read: false },
+  { id: 'n1', facultyId: 'f2', text: 'Roanne Anunciado requested the Audio-Visual Room.', at: ago(10), read: false },
+  { id: 'n2', facultyId: 'f2', text: 'Angelique Barnuevo requested Room 305.', at: ago(5), read: false },
+  { id: 'n4', facultyId: 'f2', text: 'Roanne Anunciado asked to cancel her approved reservation of the Audio-Visual Room.', at: ago(2), read: false },
   { id: 'n3', facultyId: 'f3', text: 'Your reservation for Room 103 was approved.', at: ago(190), read: true },
 ]
 export const by = {
