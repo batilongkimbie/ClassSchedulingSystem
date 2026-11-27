@@ -13,12 +13,14 @@ import { DAYS, fmtTime } from '../../utils/time'
 const props = defineProps({ open: Boolean, ccId: String })
 const emit = defineEmits(['close'])
 const store = useScheduleStore(), toast = useToast()
-const showInst = ref(false), showRooms = ref(false), pick = ref(null), confirm = ref(null) // {kind,id}
+const showInst = ref(false), showRooms = ref(false), pick = ref(null), editingAssignmentId = ref(null), confirm = ref(null) // {kind,id}
 const cc = computed(() => store.classCourses.find((c) => c.id === props.ccId))
 const course = computed(() => cc.value && by.course(cc.value.courseId))
 const set = computed(() => cc.value && by.classSet(cc.value.classSetId))
 const inst = computed(() => cc.value?.instructorId && by.faculty(cc.value.instructorId))
 const list = computed(() => (cc.value ? store.ccAssignments(cc.value.id) : []))
+const editingAssignment = computed(() => store.assignments.find((a) => a.id === editingAssignmentId.value))
+function closeRoomAssignment() { pick.value = null; editingAssignmentId.value = null }
 function doConfirm() {
   if (confirm.value.kind === 'assignment') { store.removeAssignment(confirm.value.id); toast.success('Room assignment removed.') }
   else { store.removeClassCourse(props.ccId); toast.success('Course removed from the class set.'); emit('close') }
@@ -45,6 +47,7 @@ const btn = 'rounded-lg px-3.5 py-2 text-sm font-semibold'
           <span :class="['h-8 w-1 rounded', a.classType === 'laboratory' ? 'bg-sky-500' : 'bg-emerald-500']"></span>
           <div class="min-w-0 flex-1"><p class="font-medium">{{ by.room(a.roomId).name }} <span class="text-xs font-normal capitalize text-slate-500">· {{ a.classType }}</span></p>
             <p class="text-xs text-slate-500">{{ a.days.map((d) => DAYS[d].slice(0, 3)).join(', ') }} · {{ fmtTime(a.start) }} – {{ fmtTime(a.end) }}</p></div>
+          <button class="rounded-lg px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50" @click="editingAssignmentId = a.id">Edit</button>
           <button class="rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50" @click="confirm = { kind: 'assignment', id: a.id }">Remove</button>
         </li>
       </ul>
@@ -57,7 +60,7 @@ const btn = 'rounded-lg px-3.5 py-2 text-sm font-semibold'
   </Modal>
   <InstructorSelectModal :open="showInst" :cc-id="ccId" @close="showInst = false" />
   <RoomSelectModal :open="showRooms" :cc-id="ccId" @close="showRooms = false" @pick="(p) => (pick = p)" />
-  <RoomAssignmentModal :open="!!pick" :cc-id="ccId" :room-id="pick?.roomId" :class-type="pick?.classType" @close="pick = null" @saved="showRooms = false" />
+  <RoomAssignmentModal :open="!!pick || !!editingAssignmentId" :cc-id="ccId" :room-id="editingAssignment?.roomId || pick?.roomId" :class-type="editingAssignment?.classType || pick?.classType" :assignment-id="editingAssignmentId" @close="closeRoomAssignment" @saved="showRooms = false" />
   <ConfirmModal :open="!!confirm" danger confirm-text="Remove" :title="confirm?.kind === 'course' ? 'Remove this course?' : 'Remove this room assignment?'"
                 :message="confirm?.kind === 'course' ? 'The course and all of its room assignments will be removed from the class set.' : 'The room will become available again for that time.'"
                 @confirm="doConfirm" @cancel="confirm = null" />

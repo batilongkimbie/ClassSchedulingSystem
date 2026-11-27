@@ -26,7 +26,7 @@ function laid(col) {
 const tall = (e) => toMin(e.end) - toMin(e.start) >= 60
 </script>
 <template>
-  <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+  <div class="min-h-max overflow-x-auto overflow-y-clip rounded-xl border border-slate-200 bg-white">
     <div :style="{ minWidth: 72 + days.length * 120 + 'px' }">
       <div class="flex border-b border-slate-200 bg-slate-50 text-center text-xs font-medium text-slate-600">
         <div class="w-[4.5rem] shrink-0"></div>
@@ -43,7 +43,7 @@ const tall = (e) => toMin(e.end) - toMin(e.start) >= 60
                   :title="[e.title, ...(e.lines || []), `${fmtTime(e.start)} – ${fmtTime(e.end)}`].join('\n')">
             <span class="block truncate font-semibold">{{ e.title }}</span>
             <template v-if="tall(e)"><span v-for="l in e.lines" :key="l" class="block truncate opacity-80">{{ l }}</span></template>
-            <span class="block truncate opacity-70">{{ fmtTime(e.start).replace(' ', '') }}–{{ fmtTime(e.end).replace(' ', '') }}</span>
+            <span v-if="tall(e)" class="block truncate opacity-70">{{ fmtTime(e.start).replace(' ', '') }}–{{ fmtTime(e.end).replace(' ', '') }}</span>
           </button>
         </div>
       </div>

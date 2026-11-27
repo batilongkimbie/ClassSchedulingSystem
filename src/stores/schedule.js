@@ -108,6 +108,14 @@ export const useScheduleStore = defineStore('schedule', {
       this.assignments.push({ id: 'a' + Date.now(), ccId: p.ccId, roomId: p.roomId, classType: p.classType, days: [...p.days].sort(), start: p.start, end: p.end })
       this.save(); return { ok: true }
     },
+    updateAssignment(id, p) {
+      const assignment = this.assignments.find((a) => a.id === id)
+      if (!assignment) return { ok: false, errors: ['This room assignment no longer exists.'] }
+      const errs = this.validateAssignment({ ...p, ignoreId: id })
+      if (errs.length) return { ok: false, errors: errs }
+      Object.assign(assignment, { roomId: p.roomId, classType: p.classType, days: [...p.days].sort(), start: p.start, end: p.end })
+      this.save(); return { ok: true, assignment }
+    },
     removeAssignment(id) { this.assignments = this.assignments.filter((a) => a.id !== id); this.save() },
 
     // ---- notifications (in-app) and course selection
