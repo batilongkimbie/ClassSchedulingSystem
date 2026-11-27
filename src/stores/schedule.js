@@ -9,7 +9,18 @@ const clone = (x) => JSON.parse(JSON.stringify(x))
 const defaults = () => ({ classCourses: clone(seed.classCourses), assignments: clone(seed.assignments), reservations: clone(seed.reservations),
   facultyCourses: clone(seed.facultyCourses), notifications: clone(seed.notifications), emails: [] })
 function load() {
-  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s?.classCourses) return { ...defaults(), ...s } } catch { /* ignore */ }
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY))
+    if (s?.classCourses) {
+      const state = { ...defaults(), ...s }
+      const workshop = state.reservations.find((r) => r.id === 'res7' && r.purpose === 'Department planning workshop' && r.status === 'Approved')
+      const seedWorkshop = seed.reservations.find((r) => r.id === 'res7')
+      if (workshop && seedWorkshop && state.assignments.some((a) => a.roomId === workshop.roomId && a.days.includes(dayIndexOf(workshop.date)) && overlaps(workshop.start, workshop.end, a.start, a.end))) {
+        workshop.date = seedWorkshop.date
+      }
+      return state
+    }
+  } catch { /* ignore */ }
   return defaults()
 }
 

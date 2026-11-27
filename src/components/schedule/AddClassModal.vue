@@ -5,18 +5,20 @@ import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { useToast } from '../../composables/useToast'
 import { classSets, courses } from '../../data/mockData'
-const props = defineProps({ open: Boolean })
+const props = defineProps({ open: Boolean, classSetId: { type: String, default: '' } })
 const emit = defineEmits(['close', 'added'])
 const auth = useAuthStore(), store = useScheduleStore(), toast = useToast()
 const setId = ref(''), picked = ref([]), err = ref('')
-const mySets = computed(() => classSets.filter((s) => s.programId === auth.user.programId))
+const mySets = computed(() => classSets.filter((s) => s.programId === auth.user.programId && !store.classCourses.some((c) => c.classSetId === s.id)))
 const selectedSet = computed(() => classSets.find((s) => s.id === setId.value))
 const list = computed(() => courses.filter((c) =>
   (!c.programId || c.programId === selectedSet.value?.programId) &&
   c.year === selectedSet.value?.year
 ))
 const taken = (id) => store.classCourses.some((c) => c.classSetId === setId.value && c.courseId === id)
-watch(() => props.open, (v) => { if (v) { setId.value = ''; picked.value = []; err.value = '' } })
+watch(() => [props.open, props.classSetId], ([open, classSetId]) => {
+  if (open) { setId.value = classSetId || ''; picked.value = []; err.value = '' }
+})
 watch(setId, () => (picked.value = []))
 function submit() {
   err.value = ''
@@ -28,13 +30,17 @@ function submit() {
 }
 </script>
 <template>
-  <Modal :open="open" title="Add Class" subtitle="Choose a class set, then pick one or more courses." @close="emit('close')">
-    <label class="block text-sm font-medium text-slate-700">Class set / section
+  <Modal :open="open" :title="classSetId ? `Edit Class: ${selectedSet?.name || ''}` : 'Add Class'" :subtitle="classSetId ? 'Add more courses to this class set.' : 'Choose a class set, then pick one or more courses.'" @close="emit('close')">
+    <label v-if="classSetId" class="block text-sm font-medium text-slate-700">Class set / section
+      <span class="mt-1.5 block rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-normal text-slate-700">{{ selectedSet?.name }} ({{ selectedSet?.size }} students)</span>
+    </label>
+    <label v-else-if="mySets.length" class="block text-sm font-medium text-slate-700">Class set / section
       <select v-model="setId" class="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25">
         <option value="" disabled>Select a class set</option>
         <option v-for="s in mySets" :key="s.id" :value="s.id">{{ s.name }} ({{ s.size }} students)</option>
       </select>
     </label>
+    <p v-else class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">All class sets already have courses. Use Edit Courses on a class set to add more.</p>
     <div class="mt-5">
       <div class="flex items-center justify-between"><p class="text-sm font-medium text-slate-700">Courses</p><p class="text-sm text-emerald-700">{{ picked.length }} selected</p></div>
       <div v-if="setId && list.length" class="mt-2 grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">
@@ -70,7 +76,7 @@ function submit() {
     <p v-if="err" class="mt-3 text-sm text-red-600" role="alert">{{ err }}</p>
     <template #footer>
       <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" @click="emit('close')">Cancel</button>
-      <button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800" @click="submit">Add Courses</button>
+      <button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!classSetId && !mySets.length" @click="submit">Add Courses</button>
     </template>
   </Modal>
 </template>

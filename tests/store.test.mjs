@@ -1,7 +1,8 @@
 const mem = {}; globalThis.localStorage = { getItem: k => mem[k] ?? null, setItem: (k, v) => (mem[k] = v), removeItem: k => delete mem[k] }
 import { createPinia, setActivePinia } from 'pinia'
 import { useScheduleStore } from '../src/stores/schedule.js'
-import { dayOffset, todayISO, addDays } from '../src/utils/time.js'
+import * as seed from '../src/data/mockData.js'
+import { dayOffset, todayISO, addDays, dayIndexOf, overlaps } from '../src/utils/time.js'
 setActivePinia(createPinia()); const s = useScheduleStore()
 let fails = 0; const t = (n, v) => { if (!v) fails++; console.log(v ? 'PASS' : 'FAIL', n) }
 const mon = dayOffset(1) // some future non-Sunday day
@@ -79,6 +80,8 @@ t('dean approves cancellation', s.approveCancellation(rid).ok && s.reservations.
 t('room is free again after cancellation', !s.reservationConflicts({ roomId: 'r8', date: fut, start: '09:00', end: '10:00' }).length && !s.eventsForRoom('r8', fut, fut).some(e => e.kind === 'reservation'))
 t('instructor notified cancellation approved', s.notificationsFor('f5').some(n => /cancellation of Room 101.*approved/.test(n.text)))
 t('seeded cancellation request exists for dean', s.reservations.find(x => x.id === 'res7').cancelRequest.status === 'Pending')
+const workshop = s.reservations.find(x => x.id === 'res7')
+t('seeded approved reservation does not overlap a class', !s.assignments.some(a => a.roomId === workshop.roomId && a.days.includes(dayIndexOf(workshop.date)) && overlaps(workshop.start, workshop.end, a.start, a.end)))
 const T = (st, en) => s.validateAssignment({ ccId: 'cc4', roomId: 'r2', classType: 'discussion', days: [5], start: st, end: en, programId: 'bsit' })
 t('5:30 AM start rejected', T('05:30', '07:00').some(e => /6:00 AM and 10:00 PM/.test(e)))
 t('6:00 AM - 10:00 PM accepted window', !T('06:00', '06:30').some(e => /between/.test(e)) && !T('21:30', '22:00').some(e => /between/.test(e)))
@@ -100,4 +103,13 @@ const editedAssignment = s.updateAssignment('a1', { ccId: 'cc2', roomId: 'r2', c
 t('edit existing room assignment', editedAssignment.ok && originalAssignment.start === '18:15' && originalAssignment.end === '19:45')
 const rejectedEdit = s.updateAssignment('a1', { ccId: 'cc2', roomId: 'r4', classType: 'laboratory', days: [2], start: '18:30', end: '19:30', programId: 'bsit' })
 t('editing still rejects conflicting schedule', !rejectedEdit.ok && originalAssignment.roomId === 'r2' && originalAssignment.start === '18:15')
+const saved = JSON.parse(mem.css_schedule_v3)
+const savedWorkshop = saved.reservations.find(x => x.id === 'res7')
+let conflictingDate = todayISO()
+while (dayIndexOf(conflictingDate) !== 3) conflictingDate = addDays(conflictingDate, 1)
+savedWorkshop.date = conflictingDate
+mem.css_schedule_v3 = JSON.stringify(saved)
+setActivePinia(createPinia())
+const repaired = useScheduleStore()
+t('legacy demo reservation conflict is repaired on load', repaired.reservations.find(x => x.id === 'res7').date === seed.reservations.find(x => x.id === 'res7').date)
 console.log(fails ? `${fails} FAILED` : 'ALL PASSED'); process.exit(fails ? 1 : 0)

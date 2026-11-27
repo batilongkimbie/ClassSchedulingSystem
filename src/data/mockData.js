@@ -1,4 +1,4 @@
-import { dayOffset } from '../utils/time'
+import { dayOffset, dayIndexOf, overlaps } from '../utils/time'
 // Central mock data. Replace with API calls once the backend exists.
 export const institutes = [
   { id: 'ic', name: 'Institute of Computing' },
@@ -124,6 +124,13 @@ export const assignments = [
   { id: 'a7', ccId: 'cc6', roomId: 'r1', classType: 'discussion', days: [2, 4], start: '18:30', end: '19:30' },
   { id: 'a8', ccId: 'cc6', roomId: 'r4', classType: 'laboratory', days: [2, 4], start: '19:30', end: '21:00' },
 ]
+const nextAvailableRoomDate = (roomId, start, end) => {
+  for (let offset = 1; offset <= 14; offset++) {
+    const date = dayOffset(offset), day = dayIndexOf(date)
+    if (!assignments.some((a) => a.roomId === roomId && a.days.includes(day) && overlaps(start, end, a.start, a.end))) return date
+  }
+  throw new Error(`No available date found for the ${roomId} demo reservation.`)
+}
 // Only Approved reservations block rooms. Dates are relative to today for a live demo.
 export const reservations = [
   { id: 'res1', instructorId: 'f3', deanId: 'f2', roomId: 'r10', date: dayOffset(-3), start: '15:00', end: '17:00', purpose: 'Thesis consultation seminar', submittedAt: ago(200), status: 'Approved', reason: '' },
@@ -131,7 +138,7 @@ export const reservations = [
   { id: 'res3', instructorId: 'f5', deanId: 'f2', roomId: 'r12', date: dayOffset(4), start: '09:00', end: '11:00', purpose: 'Guest lecture on cloud computing', submittedAt: ago(10), status: 'Pending', reason: '' },
   { id: 'res4', instructorId: 'f6', deanId: 'f2', roomId: 'r11', date: dayOffset(5), start: '13:00', end: '15:00', purpose: 'Make-up class', submittedAt: ago(5), status: 'Pending', reason: '' },
   { id: 'res5', instructorId: 'f7', deanId: 'f2', roomId: 'r9', date: dayOffset(3), start: '08:00', end: '10:00', purpose: 'Group quiz', submittedAt: ago(100), status: 'Rejected', reason: 'Room is reserved for a faculty meeting.' },
-  { id: 'res7', instructorId: 'f5', deanId: 'f2', roomId: 'r12', date: dayOffset(6), start: '13:00', end: '15:00', purpose: 'Department planning workshop', submittedAt: ago(70), status: 'Approved', reason: '',
+  { id: 'res7', instructorId: 'f5', deanId: 'f2', roomId: 'r12', date: nextAvailableRoomDate('r12', '13:00', '15:00'), start: '13:00', end: '15:00', purpose: 'Department planning workshop', submittedAt: ago(70), status: 'Approved', reason: '',
     cancelRequest: { status: 'Pending', reason: 'The workshop was moved to next month.', requestedAt: ago(2) } },
   { id: 'res6', instructorId: 'f8', deanId: 'f9', roomId: 'r8', date: dayOffset(2), start: '10:00', end: '12:00', purpose: 'Engineering orientation', submittedAt: ago(4), status: 'Pending', reason: '' },
 ]
