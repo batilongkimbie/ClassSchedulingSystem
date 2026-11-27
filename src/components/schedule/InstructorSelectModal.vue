@@ -1,16 +1,17 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import Modal from '../ui/Modal.vue'
+import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { useToast } from '../../composables/useToast'
 import { by } from '../../data/mockData'
 const props = defineProps({ open: Boolean, ccId: String })
 const emit = defineEmits(['close'])
-const store = useScheduleStore(), toast = useToast(), q = ref('')
+const auth = useAuthStore(), store = useScheduleStore(), toast = useToast(), q = ref('')
 watch(() => props.open, (v) => v && (q.value = ''))
 const cc = computed(() => store.classCourses.find((c) => c.id === props.ccId))
 const course = computed(() => cc.value && by.course(cc.value.courseId))
-const all = computed(() => (course.value ? store.qualifiedInstructors(course.value.id) : []))
+const all = computed(() => (course.value ? store.instructorsForCourse(course.value.id, auth.users.map((u) => u.facultyId)) : []))
 const list = computed(() => all.value.filter((f) => f.name.toLowerCase().includes(q.value.toLowerCase())))
 const load = (id) => store.classCourses.filter((c) => c.instructorId === id).length
 function pick(f) {
@@ -20,7 +21,7 @@ function pick(f) {
 }
 </script>
 <template>
-  <Modal :open="open" :z="60" :title="'Assign Instructor'" :subtitle="course ? `Qualified instructors for ${course.code} ${course.title}` : ''" @close="emit('close')">
+  <Modal :open="open" :z="60" :title="'Assign Instructor'" :subtitle="course ? `Instructors who selected ${course.code} ${course.title}` : ''" @close="emit('close')">
     <template v-if="all.length">
       <input v-model="q" type="search" placeholder="Search instructor" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25" />
       <ul class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
@@ -33,6 +34,6 @@ function pick(f) {
         <li v-if="!list.length" class="px-3 py-6 text-center text-sm text-slate-500">No instructor matches your search.</li>
       </ul>
     </template>
-    <p v-else class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">No qualified instructor is available for this course. Ask the dean to update the instructor's qualified courses.</p>
+    <p v-else class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">No instructor has selected this course yet. Ask instructors to add it under My Courses.</p>
   </Modal>
 </template>

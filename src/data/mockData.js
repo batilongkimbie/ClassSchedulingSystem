@@ -42,10 +42,19 @@ const base = [
 ]
 // A chairperson or dean also teaches, so they get the instructor role too (one account, switchable view)
 export const faculty = base.map((f) => ({ ...f, roles: f.role === 'chairperson' || f.role === 'dean' ? [f.role, 'instructor'] : [f.role] }))
+// Mock accounts for all verified faculty records; the shared demo password is password123.
 export const seedUsers = [
-  { id: 'u1', facultyId: 'f1', email: 'chair@dnsc.edu.ph',      password: 'password123' },
-  { id: 'u2', facultyId: 'f2', email: 'dean@dnsc.edu.ph',       password: 'password123' },
+  { id: 'u1', facultyId: 'f1', email: 'chair@dnsc.edu.ph', password: 'password123' },
+  { id: 'u2', facultyId: 'f2', email: 'dean@dnsc.edu.ph', password: 'password123' },
   { id: 'u3', facultyId: 'f3', email: 'instructor@dnsc.edu.ph', password: 'password123' },
+  { id: 'u4', facultyId: 'f4', email: 'joshua.ascano@dnsc.edu.ph', password: 'password123' },
+  { id: 'u5', facultyId: 'f5', email: 'ian.d@dnsc.edu.ph', password: 'password123' },
+  { id: 'u6', facultyId: 'f6', email: 'christopher.a@dnsc.edu.ph', password: 'password123' },
+  { id: 'u7', facultyId: 'f7', email: 'gulanes.j@dnsc.edu.ph', password: 'password123' },
+  { id: 'u8', facultyId: 'f8', email: 'roanne.a@dnsc.edu.ph', password: 'password123' },
+  { id: 'u9', facultyId: 'f9', email: 'jane.doe@dnsc.edu.ph', password: 'password123' },
+  { id: 'u10', facultyId: 'f10', email: 'john.doe@dnsc.edu.ph', password: 'password123' },
+  { id: 'u11', facultyId: 'f11', email: 'ramon.t@dnsc.edu.ph', password: 'password123' },
 ]
 export const courses = [
   { id: 'c1', code: 'IT 312', title: 'Integrative Programming and Technologies 1', units: 3, programId: 'bsit', year: 3 },
@@ -61,21 +70,6 @@ export const courses = [
   { id: 'c11', code: 'MS 122', title: 'Discrete Mathematics', units: 3, programId: 'bsit', year: 2 },
   { id: 'c12', code: 'IT 221', title: 'Data Structures and Algorithms', units: 3, programId: 'bsit', year: 2 },
 ]
-// Which instructors are qualified to teach which course
-export const qualifications = {
-  c1: ['f5'], 
-  c2: ['f3'], 
-  c3: ['f4'], 
-  c4: ['f7'], 
-  c5: ['f8'],
-  c6: ['f6'], 
-  c7: ['f9', 'f10'], 
-  c8: ['f5', 'f7'], 
-  c9: ['f9'], 
-  c10: ['f10'],
-  c11: ['f5'],
-  c12: ['f3'],
-}
 export const classSets = [
   { id: 's1', name: 'BSIT 1-A', programId: 'bsit', year: 1, size: 35 },
   { id: 's2', name: 'BSIT 2-A', programId: 'bsit', year: 2, size: 38 },
@@ -110,7 +104,7 @@ export const classCourses = [
   { id: 'cc5', classSetId: 's5', courseId: 'c5', instructorId: 'f8', createdAt: ago(9) },
   { id: 'cc6', classSetId: 's5', courseId: 'c6', instructorId: 'f6', createdAt: ago(20) },
   { id: 'cc7', classSetId: 's1', courseId: 'c7', instructorId: 'f9', createdAt: ago(40) },
-  { id: 'cc8', classSetId: 's2', courseId: 'c10', instructorId: 'f10', createdAt: ago(50) },
+  { id: 'cc8', classSetId: 's2', courseId: 'c10', instructorId: 'f1', createdAt: ago(50) },
   { id: 'cc9', classSetId: 's3', courseId: 'c12', instructorId: 'f3', createdAt: ago(3) },
 ]
 // Room assignments: days are 0=Mon..5=Sat
@@ -143,8 +137,20 @@ export const reservations = [
   { id: 'res6', instructorId: 'f8', deanId: 'f9', roomId: 'r8', date: dayOffset(2), start: '10:00', end: '12:00', purpose: 'Engineering orientation', submittedAt: ago(4), status: 'Pending', reason: '' },
 ]
 
-// Courses each instructor has chosen on My Courses (empty until they save a selection)
-export const facultyCourses = { f3: [], f5: [], f6: [], f7: [], f4: [], f1: [] }
+// Example My Courses selections matching the instructors on the seeded class schedules.
+export const facultyCourses = {
+  f1: ['c10'],
+  f2: ['c12'],
+  f3: ['c2', 'c12'],
+  f4: ['c3'],
+  f5: ['c1'],
+  f6: ['c6'],
+  f7: ['c4'],
+  f8: ['c5'],
+  f9: ['c7'],
+  f10: ['c11'],
+  f11: ['c9'],
+}
 export const notifications = [
   { id: 'n1', facultyId: 'f2', text: 'Carla Mendoza requested the Audio-Visual Room.', at: ago(10), read: false },
   { id: 'n2', facultyId: 'f2', text: 'Mark Villanueva requested Room 305.', at: ago(5), read: false },

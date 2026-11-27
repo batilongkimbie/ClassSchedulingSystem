@@ -6,7 +6,13 @@ import { faculty, seedUsers, programs, institutes } from '../data/mockData'
 const USERS_KEY = 'css_users', SESSION_KEY = 'css_session', ROLE_KEY = 'css_role'
 const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ')
 const loadUsers = () => {
-  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || [...seedUsers] } catch { return [...seedUsers] }
+  try {
+    const saved = JSON.parse(localStorage.getItem(USERS_KEY))
+    if (!Array.isArray(saved)) return [...seedUsers]
+    const users = new Map(seedUsers.map((user) => [user.facultyId, user]))
+    for (const user of saved) users.set(user.facultyId, user)
+    return [...users.values()]
+  } catch { return [...seedUsers] }
 }
 
 export const roleHome = { chairperson: '/chair/dashboard', dean: '/dean/dashboard', instructor: '/instructor/dashboard' }

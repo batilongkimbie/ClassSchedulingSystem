@@ -5,6 +5,7 @@ import * as seed from '../src/data/mockData.js'
 import { dayOffset, todayISO, addDays, dayIndexOf, overlaps } from '../src/utils/time.js'
 setActivePinia(createPinia()); const s = useScheduleStore()
 let fails = 0; const t = (n, v) => { if (!v) fails++; console.log(v ? 'PASS' : 'FAIL', n) }
+ t('every faculty base record has a seeded login', seed.faculty.length === seed.seedUsers.length && seed.faculty.every(f => seed.seedUsers.some(u => u.facultyId === f.id && u.email === f.email)))
 const mon = dayOffset(1) // some future non-Sunday day
 // --- Instructor -> Dean -> Instructor workflow
 const before = s.reservationsForInstitute('ioc').filter(r => r.status === 'Pending').length
@@ -47,12 +48,13 @@ t('room assignment visible on room timetable', s.eventsForRoom('r2', addDays(mon
 t('and on instructor timetable', s.eventsForInstructor('f7', addDays(mon, -6), addDays(mon, 6)).some(e => e.title === 'IT 221'))
 // approved res blocks chair assignment
 t('approved reservation blocks chair room assignment', s.validateAssignment({ ccId: 'cc4', roomId: 'r11', classType: 'discussion', days: [0,1,2,3,4,5], start: '16:00', end: '17:00', programId: 'bsit' }).some(e => /reservation/.test(e)))
-// course selection
-t('select only authorized courses', s.saveCourseSelection('f3', ['c1', 'c2', 'c9', 'c1']) === 2)
+// instructor course selection is the source of truth for chair assignments
+t('save selected courses and ignore invalid IDs', s.saveCourseSelection('f3', ['c1', 'c2', 'c9', 'c999', 'c1']) === 3)
 t('no duplicates', new Set(s.selectedCourses('f3')).size === s.selectedCourses('f3').length)
+t('chair picker uses selected courses', s.instructorsForCourse('c1', seed.seedUsers.map(u => u.facultyId)).some(f => f.id === 'f3') && !s.instructorsForCourse('c1', seed.seedUsers.map(u => u.facultyId)).some(f => f.id === 'f7'))
 // persistence roundtrip
 setActivePinia(createPinia()); const s2 = useScheduleStore()
-t('persisted across reload', s2.reservations.some(x => x.id === id && x.status === 'Approved') && s2.selectedCourses('f3').length === 2)
+t('persisted across reload', s2.reservations.some(x => x.id === id && x.status === 'Approved') && s2.selectedCourses('f3').length === 3)
 // ===== new: specific dean, cancellation, roles, 30-minute window =====
 const fut = addDays(mon, 28)
 const q = s.submitReservation({ instructorId: 'f5', roomId: 'r8', date: fut, start: '09:00', end: '10:00', purpose: 'Remedial class' })
@@ -103,6 +105,10 @@ const editedAssignment = s.updateAssignment('a1', { ccId: 'cc2', roomId: 'r2', c
 t('edit existing room assignment', editedAssignment.ok && originalAssignment.start === '18:15' && originalAssignment.end === '19:45')
 const rejectedEdit = s.updateAssignment('a1', { ccId: 'cc2', roomId: 'r4', classType: 'laboratory', days: [2], start: '18:30', end: '19:30', programId: 'bsit' })
 t('editing still rejects conflicting schedule', !rejectedEdit.ok && originalAssignment.roomId === 'r2' && originalAssignment.start === '18:15')
+mem.css_users = JSON.stringify(seed.seedUsers.slice(0, 3))
+setActivePinia(createPinia())
+const migratedAuth = useAuthStore()
+t('existing saved accounts merge in newly seeded faculty logins', migratedAuth.users.length === seed.faculty.length && seed.faculty.every(f => migratedAuth.users.some(u => u.facultyId === f.id)))
 const saved = JSON.parse(mem.css_schedule_v3)
 const savedWorkshop = saved.reservations.find(x => x.id === 'res7')
 let conflictingDate = todayISO()
@@ -112,4 +118,11 @@ mem.css_schedule_v3 = JSON.stringify(saved)
 setActivePinia(createPinia())
 const repaired = useScheduleStore()
 t('legacy demo reservation conflict is repaired on load', repaired.reservations.find(x => x.id === 'res7').date === seed.reservations.find(x => x.id === 'res7').date)
+const legacySchedule = JSON.parse(mem.css_schedule_v3)
+legacySchedule.courseSelectionSeedVersion = 1
+legacySchedule.facultyCourses = { f2: [], f3: ['c3'] }
+mem.css_schedule_v3 = JSON.stringify(legacySchedule)
+setActivePinia(createPinia())
+const seededSchedule = useScheduleStore()
+t('old empty selections are initialized while saved selections are preserved', seededSchedule.selectedCourses('f2').includes('c12') && seededSchedule.selectedCourses('f3').join() === 'c3')
 console.log(fails ? `${fails} FAILED` : 'ALL PASSED'); process.exit(fails ? 1 : 0)

@@ -4,12 +4,10 @@ import EmptyState from '../../components/ui/EmptyState.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { useToast } from '../../composables/useToast'
-import { courses, qualifications, by } from '../../data/mockData'
+import { courses, by } from '../../data/mockData'
 const auth = useAuthStore(), store = useScheduleStore(), toast = useToast()
 const q = ref(''), draft = ref([...store.selectedCourses(auth.user.id)]), err = ref('')
-// Only courses this instructor is authorized to teach
-const authorized = computed(() => courses.filter((c) => (qualifications[c.id] || []).includes(auth.user.id)))
-const list = computed(() => authorized.value.filter((c) => `${c.code} ${c.title}`.toLowerCase().includes(q.value.toLowerCase())))
+const list = computed(() => courses.filter((c) => `${c.code} ${c.title}`.toLowerCase().includes(q.value.toLowerCase())))
 const saved = computed(() => store.selectedCourses(auth.user.id).map(by.course))
 const dirty = computed(() => [...draft.value].sort().join() !== [...store.selectedCourses(auth.user.id)].sort().join())
 const classes = (courseId) => store.classCourses.filter((c) => c.courseId === courseId && c.instructorId === auth.user.id).map((c) => by.classSet(c.classSetId).name)
@@ -23,13 +21,13 @@ function save() {
 <template>
   <div>
     <h1 class="text-2xl font-semibold">My Courses</h1>
-    <p class="mt-1 text-sm text-slate-600">Choose the courses you will teach this semester. You can only pick courses you are authorized to handle.</p>
+    <p class="mt-1 text-sm text-slate-600">Choose the courses assigned to you for this semester.</p>
     <div class="mt-6 grid gap-6 lg:grid-cols-5">
       <section class="rounded-xl border border-slate-200 bg-white lg:col-span-3">
         <div class="border-b border-slate-100 p-4"><input v-model="q" type="search" placeholder="Search course" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25" /></div>
         <ul v-if="list.length" class="divide-y divide-slate-100"><li v-for="c in list" :key="c.id"><label class="flex cursor-pointer items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50">
           <input type="checkbox" :checked="draft.includes(c.id)" class="h-4 w-4 accent-emerald-700" @change="toggle(c.id)" /><span class="font-medium">{{ c.code }}</span><span class="flex-1 text-slate-600">{{ c.title }}</span><span class="text-xs text-slate-400">{{ c.units }} units</span></label></li></ul>
-        <p v-else class="px-4 py-10 text-center text-sm text-slate-500">{{ authorized.length ? 'No courses match your search.' : 'No courses are assigned to you yet.' }}</p>
+        <p v-else class="px-4 py-10 text-center text-sm text-slate-500">No courses match your search.</p>
       </section>
       <section class="rounded-xl border border-slate-200 bg-white lg:col-span-2">
         <h2 class="border-b border-slate-100 px-4 py-3.5 font-semibold">Selected courses ({{ draft.length }})</h2>

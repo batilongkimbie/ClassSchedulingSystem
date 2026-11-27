@@ -37,8 +37,8 @@ const input = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 te
           <select v-model="room" :class="[input, 'mt-2']" aria-label="Classroom"><option value="" disabled>Select a classroom</option><option v-for="r in list" :key="r.id" :value="r.id">{{ r.name }} · {{ r.type }} · {{ r.capacity }} seats</option></select></div>
         <label class="block text-sm font-medium text-slate-700">Reservation date<input v-model="date" type="date" :min="todayISO()" :class="[input, 'mt-1.5']" /></label>
         <div class="grid grid-cols-2 gap-3">
-          <label class="block text-sm font-medium text-slate-700">Start time<input v-model="start" type="time" min="06:00" max="22:00" step="900" :class="[input, 'mt-1.5']" /></label>
-          <label class="block text-sm font-medium text-slate-700">End time<input v-model="end" type="time" min="06:00" max="22:00" step="900" :class="[input, 'mt-1.5']" /></label>
+          <label class="block text-sm font-medium text-slate-700">Start time<input v-model="start" type="time" min="06:00" max="22:00" step="60" :class="[input, 'mt-1.5']" /></label>
+          <label class="block text-sm font-medium text-slate-700">End time<input v-model="end" type="time" min="06:00" max="22:00" step="60" :class="[input, 'mt-1.5']" /></label>
         </div>
         <label class="block text-sm font-medium text-slate-700">Purpose of reservation<textarea v-model="purpose" rows="3" :class="[input, 'mt-1.5']" placeholder="e.g. Make-up class for IT 212"></textarea></label>
       </div>

@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia'
 import * as seed from '../data/mockData'
-import { by, rooms, faculty, qualifications } from '../data/mockData'
+import { by, rooms, faculty, courses } from '../data/mockData'
 import { DAYS, toMin, fmtTime, overlaps, visibleDays, dayIndexOf, todayISO } from '../utils/time'
 
 const KEY = 'css_schedule_v3'
+const COURSE_SELECTION_SEED_VERSION = 2
 const PALETTE = ['emerald', 'sky', 'violet', 'rose', 'amber', 'indigo', 'teal']
 const clone = (x) => JSON.parse(JSON.stringify(x))
 const defaults = () => ({ classCourses: clone(seed.classCourses), assignments: clone(seed.assignments), reservations: clone(seed.reservations),
@@ -13,6 +14,13 @@ function load() {
     const s = JSON.parse(localStorage.getItem(KEY))
     if (s?.classCourses) {
       const state = { ...defaults(), ...s }
+      if (s.courseSelectionSeedVersion !== COURSE_SELECTION_SEED_VERSION) {
+        for (const [facultyId, courseIds] of Object.entries(seed.facultyCourses)) {
+          if (!Array.isArray(s.facultyCourses?.[facultyId]) || !s.facultyCourses[facultyId].length)
+            state.facultyCourses[facultyId] = [...courseIds]
+        }
+        localStorage.setItem(KEY, JSON.stringify({ ...s, facultyCourses: state.facultyCourses, courseSelectionSeedVersion: COURSE_SELECTION_SEED_VERSION }))
+      }
       const workshop = state.reservations.find((r) => r.id === 'res7' && r.purpose === 'Department planning workshop' && r.status === 'Approved')
       const seedWorkshop = seed.reservations.find((r) => r.id === 'res7')
       if (workshop && seedWorkshop && state.assignments.some((a) => a.roomId === workshop.roomId && a.days.includes(dayIndexOf(workshop.date)) && overlaps(workshop.start, workshop.end, a.start, a.end))) {
@@ -28,7 +36,7 @@ function load() {
 export const useScheduleStore = defineStore('schedule', {
   state: () => load(),
   actions: {
-    save() { localStorage.setItem(KEY, JSON.stringify({ classCourses: this.classCourses, assignments: this.assignments, reservations: this.reservations, facultyCourses: this.facultyCourses, notifications: this.notifications, emails: this.emails })) },
+    save() { localStorage.setItem(KEY, JSON.stringify({ classCourses: this.classCourses, assignments: this.assignments, reservations: this.reservations, facultyCourses: this.facultyCourses, courseSelectionSeedVersion: COURSE_SELECTION_SEED_VERSION, notifications: this.notifications, emails: this.emails })) },
     resetDemo() { localStorage.removeItem(KEY); Object.assign(this, defaults()) },
 
     // ---- lookups
@@ -39,7 +47,9 @@ export const useScheduleStore = defineStore('schedule', {
       return cc.instructorId ? 'Needs room' : 'Needs instructor'
     },
     ccAssignments(ccId) { return this.assignments.filter((a) => a.ccId === ccId) },
-    qualifiedInstructors(courseId) { return (qualifications[courseId] || []).map(by.faculty).filter(Boolean) },
+    instructorsForCourse(courseId, facultyIds) {
+      return faculty.filter((f) => facultyIds.includes(f.id) && this.selectedCourses(f.id).includes(courseId))
+    },
     instructorList() { return faculty.filter((f) => f.role === 'instructor' || this.classCourses.some((c) => c.instructorId === f.id)) },
     roomsForProgram(programId, classType) {
       return rooms.filter((r) => classType === 'laboratory'
@@ -135,8 +145,8 @@ export const useScheduleStore = defineStore('schedule', {
     markAllRead(id) { this.notifications.forEach((n) => { if (n.facultyId === id) n.read = true }); this.save() },
     selectedCourses(id) { return this.facultyCourses[id] || [] },
     saveCourseSelection(id, courseIds) {
-      const allowed = courseIds.filter((c) => (qualifications[c] || []).includes(id))
-      this.facultyCourses[id] = [...new Set(allowed)]; this.save(); return this.facultyCourses[id].length
+      const selected = [...new Set(courseIds.filter((courseId) => courses.some((c) => c.id === courseId)))]
+      this.facultyCourses[id] = selected; this.save(); return selected.length
     },
 
     // ---- reservations (only Approved ones block rooms)

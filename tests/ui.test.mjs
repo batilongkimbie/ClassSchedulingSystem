@@ -88,7 +88,7 @@ ok('instructor dashboard prompts course selection', text().includes('Select cour
 await navCheck('instructor', 'instructor', [['my-courses', 'My Courses'], ['room-timetables', 'Room Timetables'], ['my-reservations', 'My Reservations']])
 await go('/instructor/my-timetable'); ok('timetable gated until courses saved', text().includes('Select your courses first'))
 await go('/instructor/my-courses')
-const cbs = [...document.querySelectorAll('input[type=checkbox]')]; ok('only authorized courses listed', cbs.length === 4)
+const cbs = [...document.querySelectorAll('input[type=checkbox]')]; ok('entire course catalog is selectable', cbs.length === 12)
 await click(btn('Save Selection')); ok('save disabled when unchanged', !text().includes('saved to your semester'))
 cbs[0].checked = true; cbs[0].dispatchEvent(new window.Event('change', { bubbles: true })); await wait(); await click(btn('Save Selection'))
 ok('selection saved', store.selectedCourses('f3').length === 1)
@@ -115,7 +115,7 @@ await click(document.querySelector('button[aria-haspopup=menu]')); ok('profile m
 await click([...document.querySelectorAll('button')].find(b => b.textContent.includes('Switch to Instructor view'))); await wait(80)
 ok('switched to instructor view', router.currentRoute.value.path === '/instructor/dashboard' && text().includes('My Courses') && !text().includes('Create Schedule'))
 ok('chair pages locked while in instructor view', (await go('/chair/dashboard'), router.currentRoute.value.path === '/instructor/dashboard'))
-await go('/instructor/my-courses'); ok('chair sees only courses they are authorized for', document.querySelectorAll('input[type=checkbox]').length === 3)
+await go('/instructor/my-courses'); ok('chair sees the full course catalog in instructor view', document.querySelectorAll('input[type=checkbox]').length === 12)
 await click(document.querySelector('button[aria-haspopup=menu]')); await click([...document.querySelectorAll('button')].find(b => b.textContent.includes('Switch to Program Chairperson view'))); await wait(80)
 ok('switched back to chair view', router.currentRoute.value.path === '/chair/dashboard' && text().includes('Create Schedule'))
 // Date range controls

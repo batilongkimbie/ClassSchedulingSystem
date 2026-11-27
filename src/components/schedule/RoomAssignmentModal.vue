@@ -90,8 +90,8 @@ const input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border
         <section>
           <h3 class="text-sm font-semibold text-slate-900">Time range</h3>
           <div class="mt-2 grid grid-cols-2 gap-2">
-            <label class="text-xs text-slate-500">Start<input v-model="start" type="time" min="06:00" max="22:00" step="900" :class="[input, 'mt-1 w-full']" /></label>
-            <label class="text-xs text-slate-500">End<input v-model="end" type="time" min="06:00" max="22:00" step="900" :class="[input, 'mt-1 w-full']" /></label>
+            <label class="text-xs text-slate-500">Start<input v-model="start" type="time" min="06:00" max="22:00" step="60" :class="[input, 'mt-1 w-full']" /></label>
+            <label class="text-xs text-slate-500">End<input v-model="end" type="time" min="06:00" max="22:00" step="60" :class="[input, 'mt-1 w-full']" /></label>
           </div>
         </section>
         <ul v-if="errors.length" class="space-y-1.5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
