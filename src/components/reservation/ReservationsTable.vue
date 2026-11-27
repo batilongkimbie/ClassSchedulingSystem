@@ -7,9 +7,10 @@ import { fmtDate, fmtTime } from '../../utils/time'
 const props = defineProps({ rows: Array, mode: { type: String, default: 'dean' } })
 const emit = defineEmits(['open'])
 const q = ref(''), status = ref('All'), page = ref(1), SIZE = 8
-const tabs = ['All', 'Pending', 'Approved', 'Rejected']
-const count = (s) => (s === 'All' ? props.rows.length : props.rows.filter((r) => r.status === s).length)
-const filtered = computed(() => props.rows.filter((r) => (status.value === 'All' || r.status === status.value)
+const tabs = computed(() => ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', ...(props.mode === 'dean' ? ['Cancel requests'] : [])])
+const match = (r, s) => (s === 'All' ? true : s === 'Cancel requests' ? r.cancelRequest?.status === 'Pending' : r.status === s)
+const count = (s) => props.rows.filter((r) => match(r, s)).length
+const filtered = computed(() => props.rows.filter((r) => match(r, status.value)
   && `${by.faculty(r.instructorId).name} ${by.room(r.roomId).name} ${r.purpose}`.toLowerCase().includes(q.value.toLowerCase()))
   .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)))
 const paged = computed(() => filtered.value.slice((page.value - 1) * SIZE, page.value * SIZE))
@@ -31,7 +32,7 @@ const heads = computed(() => [...(props.mode === 'dean' ? ['Instructor'] : []), 
             <td class="whitespace-nowrap px-4 py-3">{{ by.room(r.roomId).name }}</td><td class="whitespace-nowrap px-4 py-3">{{ fmtDate(r.date) }}</td>
             <td class="whitespace-nowrap px-4 py-3">{{ fmtTime(r.start) }}</td><td class="whitespace-nowrap px-4 py-3">{{ fmtTime(r.end) }}</td>
             <td class="max-w-[16rem] truncate px-4 py-3" :title="r.purpose">{{ r.purpose }}</td><td class="whitespace-nowrap px-4 py-3 text-slate-500">{{ fmtDate(r.submittedAt.slice(0, 10)) }}</td>
-            <td class="px-4 py-3"><StatusBadge :status="r.status" /></td>
+            <td class="px-4 py-3"><StatusBadge :status="r.status" /><StatusBadge v-if="r.cancelRequest?.status === 'Pending'" status="Cancellation requested" class="mt-1" /></td>
             <td class="px-4 py-3"><button class="rounded-lg border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-white" @click.stop="emit('open', r.id)">{{ mode === 'dean' && r.status === 'Pending' ? 'Review' : 'View' }}</button></td>
           </tr>
           <tr v-if="!filtered.length"><td :colspan="heads.length" class="px-4 py-12 text-center text-slate-500">{{ rows.length ? 'No requests match your filters.' : 'No reservation requests yet.' }}</td></tr>

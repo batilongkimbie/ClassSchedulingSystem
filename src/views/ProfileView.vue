@@ -1,7 +1,7 @@
 <script setup>
 import { useAuthStore } from '../stores/auth'
 const { user } = useAuthStore()
-const rows = [['Full name', user.name], ['Email', user.email], ['Role', user.roleLabel], ['Institute', user.institute], ['Program', user.program || 'Not applicable']]
+const rows = [['Full name', user.name], ['Email', user.email], ['Role', user.roleLabel],['Can also act as', user.roles.filter((r) => r !== user.primaryRole).map((r) => ({ instructor: 'Instructor', chairperson: 'Program Chairperson', dean: 'Dean' })[r]).join(', ') || 'None'], ['Institute', user.institute], ['Program', user.program || 'Not applicable']]
 </script>
 <template>
   <div class="max-w-2xl">

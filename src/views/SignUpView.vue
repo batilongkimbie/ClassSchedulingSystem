@@ -32,7 +32,7 @@ async function submit() {
 <template>
   <AuthLayout>
     <h1 class="text-2xl font-semibold text-slate-900">Sign up</h1>
-    <p class="mt-1 text-sm text-slate-500">Only DNSC faculty can create an account. Your role is assigned from faculty records.</p>
+    <!--<p class="mt-1 text-sm text-slate-500">Only DNSC faculty can create an account. Your role is assigned from faculty records.</p>-->
     <form class="mt-6 space-y-5" novalidate @submit.prevent="submit">
       <BaseInput v-model="form.name" label="Full name" autocomplete="name" :error="errors.name" placeholder="Maria Santos" />
       <BaseInput v-model="form.email" label="Email address" type="email" autocomplete="email" :error="errors.email" placeholder="name@dnsc.edu.ph" />
@@ -43,6 +43,6 @@ async function submit() {
       </button>
     </form>
     <p class="mt-6 text-center text-sm text-slate-600">Already registered? <RouterLink to="/login" class="font-medium text-emerald-700 hover:underline">Log in</RouterLink></p>
-    <p class="mt-6 rounded-lg border border-dashed border-slate-300 p-3.5 text-xs text-slate-500">Demo: register <b>Jose Lim</b> (jose.lim@dnsc.edu.ph) or <b>Carla Mendoza</b> (carla.m@dnsc.edu.ph).</p>
+    <!--<p class="mt-6 rounded-lg border border-dashed border-slate-300 p-3.5 text-xs text-slate-500">Demo: register <b>Jose Lim</b> (jose.lim@dnsc.edu.ph) or <b>Carla Mendoza</b> (carla.m@dnsc.edu.ph).</p>-->
   </AuthLayout>
 </template>

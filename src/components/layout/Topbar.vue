@@ -1,13 +1,17 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useToast } from '../../composables/useToast'
 import { useAuthStore } from '../../stores/auth'
 import Icon from '../ui/Icon.vue'
 import { useScheduleStore } from '../../stores/schedule'
 
 const emit = defineEmits(['menu', 'logout'])
 const auth = useAuthStore(), store = useScheduleStore()
-const route = useRoute()
+const route = useRoute(), router = useRouter(), toast = useToast()
+const labels = { chairperson: 'Program Chairperson', dean: 'Dean', instructor: 'Instructor' }
+const others = computed(() => auth.user.roles.filter((r) => r !== auth.user.role))
+function switchTo(r) { auth.switchRole(r); menu.value = null; router.push(auth.homePath); toast.info(`Switched to ${labels[r]} view.`) }
 const menu = ref(null) // 'notif' | 'profile' | null
 const root = ref(null)
 
@@ -49,14 +53,15 @@ onBeforeUnmount(() => document.removeEventListener('click', outside))
         <span class="grid h-9 w-9 place-items-center rounded-full bg-emerald-700 text-sm font-semibold text-white">{{ auth.user.initials }}</span>
         <span class="hidden text-left leading-tight sm:block">
           <span class="block text-sm font-medium text-slate-900">{{ auth.user.name }}</span>
-          <span class="block text-xs text-slate-500">{{ auth.user.roleLabel }}</span>
+          <span class="block text-xs text-slate-500">{{ auth.user.roleLabel }}<template v-if="auth.user.roles.length > 1"> view</template></span>
         </span>
         <Icon name="chevron" :size="16" class="hidden text-slate-400 sm:block" />
       </button>
       <div v-if="menu === 'profile'" role="menu" class="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
         <div class="border-b border-slate-100 px-4 py-3 sm:hidden"><p class="text-sm font-medium">{{ auth.user.name }}</p><p class="text-xs text-slate-500">{{ auth.user.roleLabel }}</p></div>
         <RouterLink to="/profile" role="menuitem" class="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" @click="menu = null"><Icon name="user" :size="16" />My profile</RouterLink>
-        <button role="menuitem" class="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50" @click="menu = null; emit('logout')"><Icon name="logout" :size="16" />Log out</button>
+        <button v-for="r in others" :key="r" role="menuitem" class="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50" @click="switchTo(r)"><Icon name="users" :size="16" />Switch to {{ labels[r] }} view</button>
+        <button role="menuitem" class="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50" @click="menu = null; emit('logout')"><Icon name="logout" :size="16" />Log out</button>
       </div>
     </div>
   </header>

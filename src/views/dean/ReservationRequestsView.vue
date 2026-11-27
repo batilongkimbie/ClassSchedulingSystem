@@ -5,7 +5,7 @@ import ReservationDetailsModal from '../../components/reservation/ReservationDet
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 const auth = useAuthStore(), store = useScheduleStore(), open = ref(null)
-const rows = computed(() => store.reservationsForInstitute(auth.user.instituteId)) // Dean sees only their institute
+const rows = computed(() => store.reservationsForDean(auth.user.id)) // each request goes to one specific dean
 </script>
 <template>
   <div>

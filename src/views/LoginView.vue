@@ -34,7 +34,7 @@ async function submit() {
 <template>
   <AuthLayout>
     <h1 class="text-2xl font-semibold text-slate-900">Log in</h1>
-    <p class="mt-1 text-sm text-slate-500">Use your DNSC faculty email to continue.</p>
+    <!--<p class="mt-1 text-sm text-slate-500">Use your DNSC faculty email to continue.</p>-->
     <form class="mt-6 space-y-5" novalidate @submit.prevent="submit">
       <p v-if="errors.form" role="alert" class="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">{{ errors.form }}</p>
       <BaseInput v-model="form.email" label="Email address" type="email" autocomplete="email" :error="errors.email" placeholder="name@dnsc.edu.ph" />
@@ -47,9 +47,9 @@ async function submit() {
       </button>
     </form>
     <p class="mt-6 text-center text-sm text-slate-600">New faculty member? <RouterLink to="/signup" class="font-medium text-emerald-700 hover:underline">Create an account</RouterLink></p>
-    <div class="mt-8 rounded-lg border border-dashed border-slate-300 p-3.5 text-xs text-slate-500">
+    <!--<div class="mt-8 rounded-lg border border-dashed border-slate-300 p-3.5 text-xs text-slate-500">
       <p class="font-medium text-slate-700">Demo accounts (password: password123)</p>
       <p class="mt-1">chair@dnsc.edu.ph, dean@dnsc.edu.ph, instructor@dnsc.edu.ph</p>
-    </div>
+    </div>-->
   </AuthLayout>
 </template>

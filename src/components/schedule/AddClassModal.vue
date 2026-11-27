@@ -8,11 +8,15 @@ import { classSets, courses } from '../../data/mockData'
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['close', 'added'])
 const auth = useAuthStore(), store = useScheduleStore(), toast = useToast()
-const setId = ref(''), q = ref(''), picked = ref([]), err = ref('')
+const setId = ref(''), picked = ref([]), err = ref('')
 const mySets = computed(() => classSets.filter((s) => s.programId === auth.user.programId))
-const list = computed(() => courses.filter((c) => c.programId === auth.user.programId && (c.code + ' ' + c.title).toLowerCase().includes(q.value.toLowerCase())))
+const selectedSet = computed(() => classSets.find((s) => s.id === setId.value))
+const list = computed(() => courses.filter((c) =>
+  (!c.programId || c.programId === selectedSet.value?.programId) &&
+  c.year === selectedSet.value?.year
+))
 const taken = (id) => store.classCourses.some((c) => c.classSetId === setId.value && c.courseId === id)
-watch(() => props.open, (v) => { if (v) { setId.value = ''; q.value = ''; picked.value = []; err.value = '' } })
+watch(() => props.open, (v) => { if (v) { setId.value = ''; picked.value = []; err.value = '' } })
 watch(setId, () => (picked.value = []))
 function submit() {
   err.value = ''
@@ -33,17 +37,35 @@ function submit() {
     </label>
     <div class="mt-5">
       <div class="flex items-center justify-between"><p class="text-sm font-medium text-slate-700">Courses</p><p class="text-sm text-emerald-700">{{ picked.length }} selected</p></div>
-      <input v-model="q" type="search" placeholder="Search by code or description" class="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25" />
-      <ul class="mt-3 max-h-64 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
-        <li v-for="c in list" :key="c.id">
-          <label :class="['flex items-center gap-3 px-3 py-2.5 text-sm', !setId || taken(c.id) ? 'opacity-50' : 'cursor-pointer hover:bg-slate-50']">
-            <input v-model="picked" type="checkbox" :value="c.id" :disabled="!setId || taken(c.id)" class="h-4 w-4 accent-emerald-700" />
-            <span class="font-medium text-slate-900">{{ c.code }}</span><span class="flex-1 text-slate-600">{{ c.title }}</span>
-            <span v-if="taken(c.id)" class="text-xs text-slate-500">Already added</span>
-          </label>
-        </li>
-        <li v-if="!list.length" class="px-3 py-6 text-center text-sm text-slate-500">No courses match your search.</li>
-      </ul>
+      <div v-if="setId && list.length" class="mt-2 grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">
+        <label
+          v-for="c in list"
+          :key="c.id"
+          :class="[
+            'flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm transition',
+            taken(c.id)
+              ? 'border-slate-200 bg-slate-50 opacity-50'
+              : picked.includes(c.id)
+                ? 'border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600'
+                : 'border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/40'
+          ]"
+        >
+          <input
+            v-model="picked"
+            type="checkbox"
+            :value="c.id"
+            :disabled="taken(c.id)"
+            class="mt-0.5 h-4 w-4 rounded-full accent-emerald-700"
+          />
+          <span class="min-w-0 flex-1">
+            <span class="block font-semibold text-slate-900">{{ c.code }}</span>
+            <span class="block text-xs text-slate-600">{{ c.title }}</span>
+            <span v-if="taken(c.id)" class="mt-1 block text-xs font-medium text-slate-500">Already added</span>
+          </span>
+        </label>
+      </div>
+      <p v-else-if="setId" class="mt-2 rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">No courses are available for this class set.</p>
+      <p v-else class="mt-2 rounded-lg border border-dashed border-slate-300 p-5 text-center text-sm text-slate-500">Select a class set to view courses.</p>
     </div>
     <p v-if="err" class="mt-3 text-sm text-red-600" role="alert">{{ err }}</p>
     <template #footer>

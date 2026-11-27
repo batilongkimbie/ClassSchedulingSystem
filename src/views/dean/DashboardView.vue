@@ -8,7 +8,7 @@ import { useScheduleStore } from '../../stores/schedule'
 import { rooms, by } from '../../data/mockData'
 import { todayISO, defaultRange, toMin, fmtDate, fmtTime } from '../../utils/time'
 const auth = useAuthStore(), store = useScheduleStore(), router = useRouter()
-const reqs = computed(() => store.reservationsForInstitute(auth.user.instituteId))
+const reqs = computed(() => store.reservationsForDean(auth.user.id))
 const recent = computed(() => [...reqs.value].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, 5))
 const upcoming = computed(() => reqs.value.filter((r) => r.status === 'Approved' && r.date >= todayISO()).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)).slice(0, 5))
 const wk = defaultRange(), CAP = 6 * 14 * 60
@@ -21,7 +21,7 @@ const stats = computed(() => [
   { label: 'Total classrooms', value: rooms.length, icon: 'building', tone: 'emerald' },
   { label: 'Occupied right now', value: occupied.value, icon: 'clock', tone: 'sky' },
   { label: 'Available right now', value: rooms.length - occupied.value, icon: 'check', tone: 'slate' },
-  { label: 'Pending requests', value: reqs.value.filter((r) => r.status === 'Pending').length, icon: 'inbox', tone: 'amber' },
+  { label: 'Pending requests', value: reqs.value.filter((r) => r.status === 'Pending' || r.cancelRequest?.status === 'Pending').length, icon: 'inbox', tone: 'amber' },
 ])
 const card = 'rounded-xl border border-slate-200 bg-white'
 </script>

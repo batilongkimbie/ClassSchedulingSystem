@@ -3,7 +3,7 @@ import * as seed from '../data/mockData'
 import { by, rooms, faculty, qualifications } from '../data/mockData'
 import { DAYS, toMin, fmtTime, overlaps, visibleDays, dayIndexOf, todayISO } from '../utils/time'
 
-const KEY = 'css_schedule_v2'
+const KEY = 'css_schedule_v3'
 const PALETTE = ['emerald', 'sky', 'violet', 'rose', 'amber', 'indigo', 'teal']
 const clone = (x) => JSON.parse(JSON.stringify(x))
 const defaults = () => ({ classCourses: clone(seed.classCourses), assignments: clone(seed.assignments), reservations: clone(seed.reservations),
@@ -73,7 +73,7 @@ export const useScheduleStore = defineStore('schedule', {
       if (!days.length) errs.push('Select at least one day.')
       if (!start || !end) errs.push('Set both a start time and an end time.')
       else if (toMin(end) <= toMin(start)) errs.push('End time must be later than the start time.')
-      else if (toMin(start) < 7 * 60 || toMin(end) > 21 * 60) errs.push('Classes must be between 7:00 AM and 9:00 PM.')
+      else if (toMin(start) < 6 * 60 || toMin(end) > 22 * 60) errs.push('Classes must be between 6:00 AM and 10:00 PM.')
       const allowed = this.roomsForProgram(programId, classType).some((r) => r.id === roomId)
       if (!allowed) errs.push(`${room.name} cannot be used for ${classType} classes by your program.`)
       if (errs.length) return errs
@@ -142,7 +142,7 @@ export const useScheduleStore = defineStore('schedule', {
       else if (dayIndexOf(date) === 6) e.push('Reservations are not available on Sundays.')
       if (!start || !end) e.push('Set both a start time and an end time.')
       else if (toMin(end) <= toMin(start)) e.push('End time must be later than the start time.')
-      else if (toMin(start) < 420 || toMin(end) > 1260) e.push('Reservations must be between 7:00 AM and 9:00 PM.')
+      else if (toMin(start) < 360 || toMin(end) > 1320) e.push('Reservations must be between 6:00 AM and 10:00 PM.')
       if ((purpose || '').trim().length < 5) e.push('Describe the purpose (at least 5 characters).')
       if (e.length) return e
       const out = this.reservationConflicts({ roomId, date, start, end, ignoreId })
@@ -150,13 +150,15 @@ export const useScheduleStore = defineStore('schedule', {
       for (const r of this.reservations) if (r.status === 'Approved' && r.id !== ignoreId && r.instructorId === instructorId && r.date === date && overlaps(start, end, r.start, r.end)) out.push('You already have an approved reservation at that time.')
       return out
     },
+    deanFor(instructorId) { const inst = by.faculty(instructorId); return faculty.find((f) => f.role === 'dean' && f.instituteId === inst?.instituteId) || null },
     submitReservation(p) {
       const errors = this.validateReservation(p)
       if (errors.length) return { ok: false, errors }
-      const r = { id: 'res' + Date.now(), instructorId: p.instructorId, roomId: p.roomId, date: p.date, start: p.start, end: p.end, purpose: p.purpose.trim(), submittedAt: new Date().toISOString(), status: 'Pending', reason: '' }
+      const dean = this.deanFor(p.instructorId) // requests always go to the instructor's own institute dean
+      if (!dean) return { ok: false, errors: ['No dean is assigned to your institute yet.'] }
+      const r = { id: 'res' + Date.now(), instructorId: p.instructorId, deanId: dean.id, roomId: p.roomId, date: p.date, start: p.start, end: p.end, purpose: p.purpose.trim(), submittedAt: new Date().toISOString(), status: 'Pending', reason: '' }
       this.reservations.push(r)
-      const inst = by.faculty(p.instructorId)
-      faculty.filter((f) => f.role === 'dean' && f.instituteId === inst.instituteId).forEach((d) => this.notify(d.id, `${inst.name} requested ${by.room(p.roomId).name}.`))
+      if (dean.id !== p.instructorId) this.notify(dean.id, `${by.faculty(p.instructorId).name} requested ${by.room(p.roomId).name}.`)
       this.save(); return { ok: true, reservation: r }
     },
     approveReservation(id) {
@@ -176,7 +178,43 @@ export const useScheduleStore = defineStore('schedule', {
       this.notify(r.instructorId, `Your reservation for ${by.room(r.roomId).name} was rejected.`)
       this.save(); return { ok: true, reservation: r }
     },
-    logEmail(r, mail) { this.emails.push({ id: 'em' + Date.now(), resId: r.id, to: by.faculty(r.instructorId).email, subject: mail.subject, sentAt: new Date().toISOString() }); this.save() },
+    // ---- cancellation: pending requests are cancelled directly; approved ones need the dean to confirm
+    cancelReservation(id, instructorId) {
+      const r = this.reservations.find((x) => x.id === id)
+      if (!r || r.instructorId !== instructorId) return { ok: false, message: 'You can only cancel your own requests.' }
+      if (r.status !== 'Pending') return { ok: false, message: 'Only pending requests can be cancelled directly.' }
+      r.status = 'Cancelled'; r.decidedAt = new Date().toISOString()
+      if (r.deanId !== r.instructorId) this.notify(r.deanId, `${by.faculty(r.instructorId).name} cancelled the request for ${by.room(r.roomId).name}.`)
+      this.save(); return { ok: true, reservation: r }
+    },
+    requestCancellation(id, instructorId, reason) {
+      const r = this.reservations.find((x) => x.id === id)
+      if (!r || r.instructorId !== instructorId) return { ok: false, message: 'You can only cancel your own reservations.' }
+      if (r.status !== 'Approved') return { ok: false, message: 'Only approved reservations need a cancellation request.' }
+      if (r.date < todayISO()) return { ok: false, message: 'Past reservations cannot be cancelled.' }
+      if (r.cancelRequest?.status === 'Pending') return { ok: false, message: 'A cancellation request is already waiting for the Dean.' }
+      if ((reason || '').trim().length < 5) return { ok: false, message: 'Give a short reason (at least 5 characters).' }
+      r.cancelRequest = { status: 'Pending', reason: reason.trim(), requestedAt: new Date().toISOString() }
+      this.notify(r.deanId, `${by.faculty(r.instructorId).name} asked to cancel the approved reservation of ${by.room(r.roomId).name} on ${r.date}.`)
+      this.save(); return { ok: true, reservation: r }
+    },
+    approveCancellation(id) {
+      const r = this.reservations.find((x) => x.id === id)
+      if (!r || r.cancelRequest?.status !== 'Pending') return { ok: false, message: 'There is no pending cancellation request.' }
+      r.status = 'Cancelled'; r.cancelRequest.status = 'Approved'; r.cancelRequest.decidedAt = new Date().toISOString() // Cancelled never blocks a room
+      this.notify(r.instructorId, `Your cancellation of ${by.room(r.roomId).name} on ${r.date} was approved.`)
+      this.save(); return { ok: true, reservation: r }
+    },
+    declineCancellation(id, reason) {
+      const r = this.reservations.find((x) => x.id === id)
+      if (!r || r.cancelRequest?.status !== 'Pending') return { ok: false, message: 'There is no pending cancellation request.' }
+      if ((reason || '').trim().length < 3) return { ok: false, message: 'Please give a reason for declining.' }
+      r.cancelRequest.status = 'Declined'; r.cancelRequest.declineReason = reason.trim(); r.cancelRequest.decidedAt = new Date().toISOString()
+      this.notify(r.instructorId, `Your cancellation request for ${by.room(r.roomId).name} on ${r.date} was declined. The reservation stays active.`)
+      this.save(); return { ok: true, reservation: r }
+    },
+    logEmail(r, mail, kind = 'approved') { this.emails.push({ id: 'em' + Date.now() + Math.random().toString(36).slice(2, 5), resId: r.id, kind, to: mail.to, subject: mail.subject, sentAt: new Date().toISOString() }); this.save() },
+    reservationsForDean(deanId) { return this.reservations.filter((r) => r.deanId === deanId) },
     reservationsForInstitute(instituteId) { return this.reservations.filter((r) => by.faculty(r.instructorId)?.instituteId === instituteId) },
     inUseNow(roomId) {
       const d = new Date(), t = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`, today = todayISO()

@@ -1,8 +1,8 @@
 <script setup>
 // Replace these two when you have your own images.
 // Put the files in /public and use paths like '/building.jpg' and '/logo.png'.
-const backgroundImage = '' // e.g. '/building.jpg'
-const logoImage = ''       // e.g. '/logo.png'
+const backgroundImage = 'public/dnsc_bg.jpg' // e.g. '/building.jpg'
+const logoImage = 'public/dnsc_logo.jpg'       // e.g. '/logo.png'
 </script>
 
 <template>
@@ -17,7 +17,6 @@ const logoImage = ''       // e.g. '/logo.png'
     <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-950/90" aria-hidden="true" />
 
     <section class="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/30">
-      <div class="h-1.5 bg-emerald-700" />
 
       <div class="px-8 pb-8 pt-7 sm:px-10">
         <!-- Logo + system name -->

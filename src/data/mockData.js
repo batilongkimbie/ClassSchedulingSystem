@@ -1,33 +1,49 @@
 import { dayOffset } from '../utils/time'
 // Central mock data. Replace with API calls once the backend exists.
 export const institutes = [
-  { id: 'ioc', name: 'Institute of Computing' },
-  { id: 'ioe', name: 'Institute of Engineering' },
+  { id: 'ic', name: 'Institute of Computing' },
+  { id: 'iaas', name: 'Institute of Aquatic and Applied Sciences' },
+  { id: 'ited', name: 'Institute of Teacher Education' },
+  { id: 'ibpa', name: 'Institute of Business and Public Affairs' },
 ]
 export const programs = [
-  { id: 'bsit', name: 'BS Information Technology', instituteId: 'ioc' },
-  { id: 'bscs', name: 'BS Computer Science', instituteId: 'ioc' },
+  { id: 'bsit', name: 'BS Information Technology', instituteId: 'ic' },
+  { id: 'bsis', name: 'BS Information Systems', instituteId: 'ic' },
+  { id: 'bsaf', name: 'BS Agro-Forestry', instituteId: 'iaas' },
+  { id: 'bsfas', name: 'BS Fisheries and Aquatic Sciences', instituteId: 'iaas' },
+  { id: 'bsft', name: 'BS Food Technology', instituteId: 'iaas' },
+  { id: 'bsmb', name: 'BS Marine Biology', instituteId: 'iaas' },
+  { id: 'bpa', name: 'Bachelor of Public Administration', instituteId: 'ibpa' },
+  { id: 'bscrim', name: 'BS Criminology', instituteId: 'ibpa' },
+  { id: 'bsdrm', name: 'BS Disaster Resilience and Management', instituteId: 'ibpa' },
+  { id: 'bse', name: 'BS Entrepreneurship', instituteId: 'ibpa' },
+  { id: 'bssw', name: 'BS Social Work', instituteId: 'ibpa' },
+  { id: 'bstm', name: 'BS Tourism Management', instituteId: 'ibpa' },
+  { id: 'bacomm', name: 'BA Communication', instituteId: 'ited' },
 ]
 // Faculty records: sign-up is only allowed for people listed here. Role/program come from here.
-export const faculty = [
-  { id: 'f1', name: 'Maria Santos',       email: 'chair@dnsc.edu.ph',      role: 'chairperson', programId: 'bsit', instituteId: 'ioc' },
-  { id: 'f2', name: 'Roberto Cruz',       email: 'dean@dnsc.edu.ph',       role: 'dean',        programId: null,   instituteId: 'ioc' },
-  { id: 'f3', name: 'Ana Reyes',          email: 'instructor@dnsc.edu.ph', role: 'instructor',  programId: 'bsit', instituteId: 'ioc' },
-  { id: 'f4', name: 'Jose Lim',           email: 'jose.lim@dnsc.edu.ph',   role: 'instructor',  programId: 'bscs', instituteId: 'ioc' },
-  { id: 'f5', name: 'Carla Mendoza',      email: 'carla.m@dnsc.edu.ph',    role: 'instructor',  programId: 'bsit', instituteId: 'ioc' },
-  { id: 'f6', name: 'Mark Villanueva',    email: 'mark.v@dnsc.edu.ph',     role: 'instructor',  programId: 'bsit', instituteId: 'ioc' },
-  { id: 'f7', name: 'Liza Ramos',         email: 'liza.r@dnsc.edu.ph',     role: 'instructor',  programId: 'bsit', instituteId: 'ioc' },
-  { id: 'f8', name: 'Paolo Dizon',        email: 'paolo.d@dnsc.edu.ph',    role: 'instructor',  programId: null,   instituteId: 'ioe' },
+const base = [
+  { id: 'f1', name: 'Maria Santos',       email: 'chair@dnsc.edu.ph',      role: 'chairperson', programId: 'bsit', instituteId: 'ic' },
+  { id: 'f2', name: 'Roberto Cruz',       email: 'dean@dnsc.edu.ph',       role: 'dean',        programId: null,   instituteId: 'ic' },
+  { id: 'f3', name: 'Ana Reyes',          email: 'instructor@dnsc.edu.ph', role: 'instructor',  programId: 'bsit', instituteId: 'ic' },
+  { id: 'f4', name: 'Jose Lim',           email: 'jose.lim@dnsc.edu.ph',   role: 'instructor',  programId: 'bscs', instituteId: 'ic' },
+  { id: 'f5', name: 'Carla Mendoza',      email: 'carla.m@dnsc.edu.ph',    role: 'instructor',  programId: 'bsit', instituteId: 'ic' },
+  { id: 'f6', name: 'Mark Villanueva',    email: 'mark.v@dnsc.edu.ph',     role: 'instructor',  programId: 'bsit', instituteId: 'ic' },
+  { id: 'f7', name: 'Liza Ramos',         email: 'liza.r@dnsc.edu.ph',     role: 'instructor',  programId: 'bsit', instituteId: 'ic' },
+  { id: 'f8', name: 'Paolo Dizon',        email: 'paolo.d@dnsc.edu.ph',    role: 'instructor',  programId: null,   instituteId: 'iaas' },
+  { id: 'f9', name: 'Ramon Torres',       email: 'ramon.t@dnsc.edu.ph',    role: 'dean',        programId: null,   instituteId: 'iaas' },
 ]
+// A chairperson or dean also teaches, so they get the instructor role too (one account, switchable view)
+export const faculty = base.map((f) => ({ ...f, roles: f.role === 'chairperson' || f.role === 'dean' ? [f.role, 'instructor'] : [f.role] }))
 export const seedUsers = [
   { id: 'u1', facultyId: 'f1', email: 'chair@dnsc.edu.ph',      password: 'password123' },
   { id: 'u2', facultyId: 'f2', email: 'dean@dnsc.edu.ph',       password: 'password123' },
   { id: 'u3', facultyId: 'f3', email: 'instructor@dnsc.edu.ph', password: 'password123' },
 ]
 export const courses = [
-  { id: 'c1', code: 'ITC 111', title: 'Introduction to Computing', units: 3, programId: 'bsit', year: 1 },
-  { id: 'c2', code: 'IT 211', title: 'Data Structures and Algorithms', units: 3, programId: 'bsit', year: 2 },
-  { id: 'c3', code: 'IT 212', title: 'Web Systems and Technologies', units: 3, programId: 'bsit', year: 2 },
+  { id: 'c1', code: 'ITC 312', title: 'Integrative Programming and Technologies 1', units: 3, programId: 'bsit', year: 3 },
+  { id: 'c2', code: 'IT 311', title: 'Networking 2', units: 3, programId: 'bsit', year: 3 },
+  { id: 'c3', code: 'GEELECT 3', title: 'Philippine Popular Culture', units: 3, programId: null, year: 3 },
   { id: 'c4', code: 'IT 221', title: 'Database Management Systems', units: 3, programId: 'bsit', year: 2 },
   { id: 'c5', code: 'IT 231', title: 'Networking 1', units: 3, programId: 'bsit', year: 2 },
   { id: 'c6', code: 'IT 241', title: 'Object-Oriented Programming', units: 3, programId: 'bsit', year: 2 },
@@ -86,18 +102,22 @@ export const assignments = [
 ]
 // Only Approved reservations block rooms. Dates are relative to today for a live demo.
 export const reservations = [
-  { id: 'res1', instructorId: 'f3', roomId: 'r10', date: dayOffset(-3), start: '15:00', end: '17:00', purpose: 'Thesis consultation seminar', submittedAt: ago(200), status: 'Approved', reason: '' },
-  { id: 'res2', instructorId: 'f5', roomId: 'r10', date: dayOffset(2), start: '15:00', end: '17:00', purpose: 'Capstone proposal defense', submittedAt: ago(60), status: 'Approved', reason: '' },
-  { id: 'res3', instructorId: 'f5', roomId: 'r12', date: dayOffset(4), start: '09:00', end: '11:00', purpose: 'Guest lecture on cloud computing', submittedAt: ago(10), status: 'Pending', reason: '' },
-  { id: 'res4', instructorId: 'f6', roomId: 'r11', date: dayOffset(5), start: '13:00', end: '15:00', purpose: 'Make-up class', submittedAt: ago(5), status: 'Pending', reason: '' },
-  { id: 'res5', instructorId: 'f7', roomId: 'r9', date: dayOffset(3), start: '08:00', end: '10:00', purpose: 'Group quiz', submittedAt: ago(100), status: 'Rejected', reason: 'Room is reserved for a faculty meeting.' },
-  { id: 'res6', instructorId: 'f8', roomId: 'r8', date: dayOffset(2), start: '10:00', end: '12:00', purpose: 'Engineering orientation', submittedAt: ago(4), status: 'Pending', reason: '' },
+  { id: 'res1', instructorId: 'f3', deanId: 'f2', roomId: 'r10', date: dayOffset(-3), start: '15:00', end: '17:00', purpose: 'Thesis consultation seminar', submittedAt: ago(200), status: 'Approved', reason: '' },
+  { id: 'res2', instructorId: 'f5', deanId: 'f2', roomId: 'r10', date: dayOffset(2), start: '15:00', end: '17:00', purpose: 'Capstone proposal defense', submittedAt: ago(60), status: 'Approved', reason: '' },
+  { id: 'res3', instructorId: 'f5', deanId: 'f2', roomId: 'r12', date: dayOffset(4), start: '09:00', end: '11:00', purpose: 'Guest lecture on cloud computing', submittedAt: ago(10), status: 'Pending', reason: '' },
+  { id: 'res4', instructorId: 'f6', deanId: 'f2', roomId: 'r11', date: dayOffset(5), start: '13:00', end: '15:00', purpose: 'Make-up class', submittedAt: ago(5), status: 'Pending', reason: '' },
+  { id: 'res5', instructorId: 'f7', deanId: 'f2', roomId: 'r9', date: dayOffset(3), start: '08:00', end: '10:00', purpose: 'Group quiz', submittedAt: ago(100), status: 'Rejected', reason: 'Room is reserved for a faculty meeting.' },
+  { id: 'res7', instructorId: 'f5', deanId: 'f2', roomId: 'r12', date: dayOffset(6), start: '13:00', end: '15:00', purpose: 'Department planning workshop', submittedAt: ago(70), status: 'Approved', reason: '',
+    cancelRequest: { status: 'Pending', reason: 'The workshop was moved to next month.', requestedAt: ago(2) } },
+  { id: 'res6', instructorId: 'f8', deanId: 'f9', roomId: 'r8', date: dayOffset(2), start: '10:00', end: '12:00', purpose: 'Engineering orientation', submittedAt: ago(4), status: 'Pending', reason: '' },
 ]
+
 // Courses each instructor has chosen on My Courses (empty until they save a selection)
 export const facultyCourses = { f3: [], f5: [], f6: [], f7: [], f4: [], f1: [] }
 export const notifications = [
   { id: 'n1', facultyId: 'f2', text: 'Carla Mendoza requested the Audio-Visual Room.', at: ago(10), read: false },
   { id: 'n2', facultyId: 'f2', text: 'Mark Villanueva requested Room 305.', at: ago(5), read: false },
+  { id: 'n4', facultyId: 'f2', text: 'Carla Mendoza asked to cancel her approved reservation of the Audio-Visual Room.', at: ago(2), read: false },
   { id: 'n3', facultyId: 'f3', text: 'Your reservation for Room 103 was approved.', at: ago(190), read: true },
 ]
 export const by = {
