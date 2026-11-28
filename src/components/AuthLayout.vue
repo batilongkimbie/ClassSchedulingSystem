@@ -14,12 +14,11 @@ const logoImage = 'public/dnsc_logo.jpg'       // e.g. '/logo.png'
       aria-hidden="true"
     />
     <!-- Green overlay keeps the form readable over any photo -->
-    <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/90 via-emerald-800/80 to-emerald-950/90" aria-hidden="true" />
+    <div class="absolute inset-0 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-emerald-950/50" aria-hidden="true" />
 
     <section class="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/30">
 
       <div class="px-8 pb-8 pt-7 sm:px-10">
-        <!-- Logo + system name -->
         <header class="flex items-center gap-4">
           <img
             v-if="logoImage"

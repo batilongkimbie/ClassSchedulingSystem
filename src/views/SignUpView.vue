@@ -31,8 +31,8 @@ async function submit() {
 </script>
 <template>
   <AuthLayout>
-    <h1 class="text-2xl font-semibold text-slate-900">Sign up</h1>
-    <!--<p class="mt-1 text-sm text-slate-500">Only DNSC faculty can create an account. Your role is assigned from faculty records.</p>-->
+    <h1 class="text-center text-2xl font-semibold text-slate-900">Sign up</h1>
+    <p class="mt-1 text-center text-sm text-slate-500">Only DNSC faculty can create an account.</p>
     <form class="mt-6 space-y-5" novalidate @submit.prevent="submit">
       <BaseInput v-model="form.name" label="Full name" autocomplete="name" :error="errors.name" placeholder="Maria Santos" />
       <BaseInput v-model="form.email" label="Email address" type="email" autocomplete="email" :error="errors.email" placeholder="name@dnsc.edu.ph" />
