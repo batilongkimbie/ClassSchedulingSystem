@@ -36,6 +36,10 @@ const V = (o) => s.validateReservation({ instructorId: 'f3', roomId: 'r11', date
 t('past date rejected', V({ date: '2020-01-01' }).some(e => /past/.test(e)))
 t('bad time range', V({ start: '17:00', end: '16:00' }).some(e => /later/.test(e)))
 t('purpose required', V({ purpose: '' }).some(e => /purpose/i.test(e)))
+let nextMonday = addDays(todayISO(), 1)
+while (dayIndexOf(nextMonday) !== 0) nextMonday = addDays(nextMonday, 1)
+t('instructor class schedule blocks a reservation in another room', s.reservationInstructorConflicts({ instructorId: 'f3', date: nextMonday, start: '18:30', end: '19:00' }).some(e => /has a class/.test(e)))
+t('time after an instructor class is available', !s.reservationInstructorConflicts({ instructorId: 'f3', date: nextMonday, start: '19:30', end: '20:00' }).some(e => /has a class/.test(e)))
 const bsmbOnlyRoom = { id: 'test-bsmb-room', name: 'BSMB-only classroom', type: 'classroom', category: 'exclusive', programIds: ['bsmb'], capacity: 40 }
 seed.rooms.push(bsmbOnlyRoom)
 t('BSIS instructors can use their program room', s.roomsForProgram('bsis', 'discussion').some(room => room.id === 'r6'))

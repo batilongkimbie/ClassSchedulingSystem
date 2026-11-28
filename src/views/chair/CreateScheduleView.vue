@@ -12,9 +12,9 @@ import { DAYS, fmtTime } from '../../utils/time'
 const auth = useAuthStore(), store = useScheduleStore()
 const showAdd = ref(false), addClassSetId = ref(''), activeCc = ref(null), reviewSet = ref(null), filterSet = ref(''), q = ref('')
 const mySets = computed(() => classSets.filter((s) => s.programId === auth.user.programId))
-const groups = computed(() => mySets.value.filter((s) => !filterSet.value || s.id === filterSet.value).map((s) => ({
+const groups = computed(() => mySets.value.filter((s) => (!filterSet.value || s.id === filterSet.value) && s.name.toLowerCase().includes(q.value.trim().toLowerCase())).map((s) => ({
   set: s,
-  items: store.classCourses.filter((c) => c.classSetId === s.id && (by.course(c.courseId).code + ' ' + by.course(c.courseId).title).toLowerCase().includes(q.value.toLowerCase())),
+  items: store.classCourses.filter((c) => c.classSetId === s.id),
   total: store.classCourses.filter((c) => c.classSetId === s.id).length,
 })).filter((g) => g.total))
 const done = (set) => store.classCourses.filter((c) => c.classSetId === set.id && store.ccStatus(c) === 'Complete').length
@@ -32,7 +32,7 @@ const closeAddClass = () => { showAdd.value = false; addClassSetId.value = '' }
     </div>
     <div class="mt-5 flex flex-wrap gap-3">
       <select v-model="filterSet" :class="field" aria-label="Filter by class set"><option value="">All class sets</option><option v-for="s in mySets" :key="s.id" :value="s.id">{{ s.name }}</option></select>
-      <input v-model="q" type="search" placeholder="Search courses" :class="[field, 'w-full sm:w-72']" />
+      <input v-model="q" type="search" placeholder="Search classes" aria-label="Search classes" :class="[field, 'w-full sm:w-72']" />
     </div>
 
     <div v-if="groups.length" class="mt-6 space-y-8">
@@ -55,10 +55,10 @@ const closeAddClass = () => { showAdd.value = false; addClassSetId.value = '' }
               <div class="flex gap-2"><dt class="w-16 shrink-0 text-slate-500">Room</dt><dd class="min-w-0"><template v-if="roomText(cc).length"><span v-for="t in roomText(cc)" :key="t" class="block truncate font-medium text-slate-800">{{ t }}</span></template><span v-else class="text-amber-700">Not assigned</span></dd></div>
             </dl>
           </button>
-          <p v-if="!g.items.length" class="text-sm text-slate-500">No courses match your search.</p>
         </div>
       </section>
     </div>
+    <div v-else-if="q.trim()" class="mt-6"><EmptyState title="No classes match your search" message="Try a different class name." /></div>
     <div v-else class="mt-6"><EmptyState title="No classes yet" message="Click Add Class to pick a class set and its courses."><button class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white" @click="openAddClass">+ Add Class</button></EmptyState></div>
 
     <AddClassModal :open="showAdd" :class-set-id="addClassSetId" @close="closeAddClass" />

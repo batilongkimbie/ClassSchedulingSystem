@@ -2,11 +2,12 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import Modal from '../ui/Modal.vue'
 import StatusBadge from '../ui/StatusBadge.vue'
+import WeeklyTimetable from '../timetable/WeeklyTimetable.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { useToast } from '../../composables/useToast'
 import { by } from '../../data/mockData'
-import { todayISO, dayOffset, toMin, fmtTime } from '../../utils/time'
+import { todayISO, dayOffset, toMin, fmtDate, parseISO } from '../../utils/time'
 const props = defineProps({ open: Boolean, roomId: String })
 const emit = defineEmits(['close', 'submitted'])
 const auth = useAuthStore(), store = useScheduleStore(), toast = useToast()
@@ -16,9 +17,30 @@ const dean = computed(() => store.deanFor(auth.user.id)) // fixed, instructors n
 const list = computed(() => store.roomsForProgram(auth.user.programId, 'discussion').filter((r) => r.name.toLowerCase().includes(q.value.toLowerCase())))
 const payload = computed(() => ({ instructorId: auth.user.id, roomId: room.value, date: date.value, start: start.value, end: end.value, purpose: purpose.value }))
 const errors = computed(() => (touched.value ? store.validateReservation(payload.value) : []))
-const dayEvents = computed(() => (room.value && date.value ? store.eventsForRoom(room.value, date.value, date.value).sort((a, b) => a.start.localeCompare(b.start)) : []))
+const timetableDays = computed(() => date.value ? [{
+  key: date.value,
+  label: parseISO(date.value).toLocaleDateString('en-US', { weekday: 'long' }),
+  sub: fmtDate(date.value),
+}] : [])
+const roomEvents = computed(() => room.value && date.value
+  ? store.eventsForRoom(room.value, date.value, date.value).map((e) => e.kind === 'class' ? { ...e, color: 'emerald' } : e)
+  : [])
+const instructorEvents = computed(() => {
+  if (!date.value) return []
+  const roomEventIds = new Set(roomEvents.value.map((e) => e.id))
+  return store.eventsForInstructor(auth.user.id, date.value, date.value).filter((e) => !roomEventIds.has(e.id))
+})
 const slotKnown = computed(() => room.value && date.value && start.value && end.value && toMin(end.value) > toMin(start.value))
-const slotFree = computed(() => slotKnown.value && !store.reservationConflicts({ roomId: room.value, date: date.value, start: start.value, end: end.value }).length)
+const selectedSlot = computed(() => slotKnown.value ? [{
+  id: 'selected-slot', col: date.value, start: start.value, end: end.value,
+  color: 'selection', kind: 'selection', title: 'Selected time', lines: [],
+}] : [])
+const timetableEvents = computed(() => [...roomEvents.value, ...selectedSlot.value])
+const slotConflicts = computed(() => slotKnown.value ? [
+  ...store.reservationConflicts({ roomId: room.value, date: date.value, start: start.value, end: end.value }),
+  ...store.reservationInstructorConflicts({ instructorId: auth.user.id, date: date.value, start: start.value, end: end.value }),
+] : [])
+const slotFree = computed(() => slotKnown.value && !slotConflicts.value.length)
 function submit() {
   touched.value = true
   const res = store.submitReservation(payload.value)
@@ -29,8 +51,8 @@ function submit() {
 const input = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25'
 </script>
 <template>
-  <Modal :open="open" size="lg" title="Reserve classroom" subtitle="Your request goes to the Dean. Only approved reservations block a room." @close="emit('close')">
-    <div class="grid gap-5 md:grid-cols-2">
+  <Modal :open="open" size="xl" title="Reserve classroom" subtitle="Your request goes to the Dean. Only approved reservations block a room." @close="emit('close')">
+    <div class="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
       <div class="space-y-4">
         <div><label class="text-sm font-medium text-slate-700">Classroom</label>
           <input v-model="q" type="search" placeholder="Search room" :class="[input, 'mt-1.5']" />
@@ -42,17 +64,24 @@ const input = 'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 te
         </div>
         <label class="block text-sm font-medium text-slate-700">Purpose of reservation<textarea v-model="purpose" rows="3" :class="[input, 'mt-1.5']" placeholder="e.g. Make-up class for IT 212"></textarea></label>
       </div>
-      <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 md:col-span-2">This request will be sent to <span class="font-semibold">{{ dean ? `Dean ${dean.name}` : '(no dean assigned)' }}</span> for approval.</p>
-      <section class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <h3 class="text-sm font-semibold">Room availability</h3>
-        <p v-if="!room || !date" class="mt-2 text-sm text-slate-500">Choose a room and date to see what is already booked.</p>
+      <section class="min-w-0">
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-sm font-semibold">Availability for selected day</h3>
+          <span v-if="room && date" class="text-xs text-slate-500">{{ by.room(room).name }} · {{ fmtDate(date, true) }}</span>
+        </div>
+        <p v-if="!date" class="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">Choose a date to view the timetable.</p>
         <template v-else>
-          <p class="mt-1 text-xs text-slate-500">{{ by.room(room).name }} on {{ date }}</p>
-          <ul v-if="dayEvents.length" class="mt-2 space-y-1.5"><li v-for="e in dayEvents" :key="e.id" class="rounded-lg bg-white px-3 py-2 text-xs ring-1 ring-slate-200"><span class="font-medium">{{ fmtTime(e.start) }} – {{ fmtTime(e.end) }}</span> · {{ e.kind === 'reservation' ? 'Reserved' : e.title }} <span class="text-slate-500">{{ e.lines[0] }}</span></li></ul>
-          <p v-else class="mt-2 text-sm text-slate-600">Nothing booked that day.</p>
-          <div v-if="slotKnown" class="mt-3 flex items-center gap-2 text-sm"><span>Your time:</span><StatusBadge :status="slotFree ? 'Available' : 'Rejected'" /><span v-if="!slotFree" class="text-xs text-red-700">Not available</span></div>
+          <WeeklyTimetable :days="timetableDays" :events="timetableEvents" :busy-events="instructorEvents" />
+          <p class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+            <span>■ <span class="text-slate-500">Your schedule (any room)</span></span>
+            <span>■ <span class="text-emerald-600">Class in selected room</span></span>
+            <span>■ <span class="text-amber-600">Reserved in selected room</span></span>
+            <span>▢ Selected time</span>
+          </p>
+          <div v-if="slotKnown" class="mt-3 flex items-center gap-2 text-sm"><span>Your time:</span><StatusBadge :status="slotFree ? 'Available' : 'Rejected'" /><span v-if="!slotFree" class="text-xs text-red-700">Overlaps your schedule or a room booking.</span></div>
         </template>
       </section>
+      <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 lg:col-span-2">This request will be sent to <span class="font-semibold">{{ dean ? `Dean ${dean.name}` : '(no dean assigned)' }}</span> for approval.</p>
     </div>
     <ul v-if="errors.length" class="mt-4 space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert"><li v-for="e in errors" :key="e">{{ e }}</li></ul>
     <template #footer>

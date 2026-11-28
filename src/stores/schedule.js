@@ -177,6 +177,16 @@ export const useScheduleStore = defineStore('schedule', {
       }
       return out
     },
+    reservationInstructorConflicts({ instructorId, date, start, end, ignoreId }) {
+      const out = this.personConflicts({ instructorId, days: [dayIndexOf(date)], start, end })
+        .filter((message) => message.includes('already teaches'))
+        .map((message) => message.replace(' already teaches', ' has a class:'))
+      for (const r of this.reservations) {
+        if (r.status === 'Approved' && r.id !== ignoreId && r.instructorId === instructorId && r.date === date && overlaps(start, end, r.start, r.end))
+          out.push('You already have an approved reservation at that time.')
+      }
+      return out
+    },
     validateReservation({ instructorId, roomId, date, start, end, purpose, ignoreId }) {
       const e = []
       const room = by.room(roomId)
@@ -192,8 +202,7 @@ export const useScheduleStore = defineStore('schedule', {
       if ((purpose || '').trim().length < 5) e.push('Describe the purpose (at least 5 characters).')
       if (e.length) return e
       const out = this.reservationConflicts({ roomId, date, start, end, ignoreId })
-      out.push(...this.personConflicts({ instructorId, days: [dayIndexOf(date)], start, end }).filter((m) => m.includes('already teaches')).map((m) => m.replace(/ already teaches/, ' has a class:')))
-      for (const r of this.reservations) if (r.status === 'Approved' && r.id !== ignoreId && r.instructorId === instructorId && r.date === date && overlaps(start, end, r.start, r.end)) out.push('You already have an approved reservation at that time.')
+      out.push(...this.reservationInstructorConflicts({ instructorId, date, start, end, ignoreId }))
       return out
     },
     deanFor(instructorId) { const inst = by.faculty(instructorId); return faculty.find((f) => f.role === 'dean' && f.instituteId === inst?.instituteId) || null },
@@ -210,7 +219,10 @@ export const useScheduleStore = defineStore('schedule', {
     approveReservation(id) {
       const r = this.reservations.find((x) => x.id === id)
       if (!r || r.status !== 'Pending') return { ok: false, message: 'This request has already been decided.' }
-      const c = this.reservationConflicts({ roomId: r.roomId, date: r.date, start: r.start, end: r.end, ignoreId: r.id })
+      const c = [
+        ...this.reservationConflicts({ roomId: r.roomId, date: r.date, start: r.start, end: r.end, ignoreId: r.id }),
+        ...this.reservationInstructorConflicts({ instructorId: r.instructorId, date: r.date, start: r.start, end: r.end, ignoreId: r.id }),
+      ]
       if (c.length) return { ok: false, message: 'Cannot approve: ' + c[0] }
       r.status = 'Approved'; r.decidedAt = new Date().toISOString()
       this.notify(r.instructorId, `Your reservation for ${by.room(r.roomId).name} was approved.`)
