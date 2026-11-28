@@ -26,14 +26,31 @@ ok('unknown faculty cannot register', !auth.register({ name: 'Nobody', email: 'n
 ok('register Jose Lim', auth.register({ name: 'Jose Lim', email: 'jose.lim@dnsc.edu.ph', password: 'abcd1234' }).ok)
 ok('duplicate email blocked', !auth.register({ name: 'Jose Lim', email: 'jose.lim@dnsc.edu.ph', password: 'abcd1234' }).ok)
 
+auth.users.push({ id: 'test-bsmb', facultyId: 'f11', email: 'bsmb.test@dnsc.edu.ph', password: 'password123' })
+auth.login({ email: 'bsmb.test@dnsc.edu.ph', password: 'password123' })
+auth.switchRole('instructor'); await go('/instructor/room-timetables')
+const bsmbRoomOptions = [...document.querySelector('[aria-label="Room"]').options].map(o => o.textContent)
+ok('BSMB room timetable hides other programs\' exclusive rooms', bsmbRoomOptions.includes('AB 3-7') && bsmbRoomOptions.includes('AB 3-3') && !bsmbRoomOptions.includes('AES') && !bsmbRoomOptions.includes('AB 3-1'))
+auth.logout()
+
 const navCheck = async (who, prefix, pages) => {
   for (const [path, needle] of pages) { await go(`/${prefix}/${path}`); ok(`${who} ${path}`, text().includes(needle) && router.currentRoute.value.path === `/${prefix}/${path}`) }
 }
 // --- Chair
 auth.login({ email: 'chair@dnsc.edu.ph', password: 'password123' }); await go('/chair/dashboard')
 ok('chair dashboard', text().includes('Scheduling overview for BS Information Technology'))
+await go('/profile')
+ok('profile photo and password editing controls', text().includes('Change photo') && text().includes('Change password') && text().includes('Update password') && document.querySelector('input[type=file][accept*=\"image/png\"]'))
+await go('/chair/dashboard')
 ok('chair blocked from dean area', (await go('/dean/dashboard'), router.currentRoute.value.path === '/chair/dashboard'))
 await navCheck('chair', 'chair', [['create-schedule', 'Create Schedule'], ['room-timetables', 'Room Timetables'], ['instructor-timetables', 'Instructor Timetables']])
+await go('/chair/room-timetables')
+const chairRoomOptions = [...document.querySelector('[aria-label="Room"]').options].map(o => o.textContent)
+ok('chair room timetables show public and program-shared rooms only', chairRoomOptions.includes('AB 3-1') && !chairRoomOptions.includes('AB 3-2') && chairRoomOptions.includes('AB 3-7'))
+auth.logout(); auth.login({ email: 'dean@dnsc.edu.ph', password: 'password123' }); await go('/dean/room-timetables')
+const instituteRoomOptions = [...document.querySelector('[aria-label="Room"]').options].map(o => o.textContent)
+ok('dean room timetables show institute rooms and public rooms only', instituteRoomOptions.includes('AB 3-1') && instituteRoomOptions.includes('AB 3-2') && instituteRoomOptions.includes('AB 3-7'))
+auth.logout(); auth.login({ email: 'chair@dnsc.edu.ph', password: 'password123' })
 await go('/chair/create-schedule')
 await click(btn('Add Class')); ok('Add Class modal opens', text().includes('Choose a class set'))
 await click(btn('Add Courses')); ok('add w/o set shows validation', text().includes('Select a class set'))
@@ -69,6 +86,9 @@ await click(btn('Save & Exit')); ok('saving empty form blocked', text().includes
 auth.logout(); auth.login({ email: 'dean@dnsc.edu.ph', password: 'password123' }); await go('/dean/dashboard')
 ok('dean dashboard', text().includes('Welcome, Dean Cruz') && text().includes('Total classrooms'))
 await navCheck('dean', 'dean', [['room-timetables', 'Room Timetables'], ['instructor-timetables', 'Instructor Timetables'], ['reservation-requests', 'Reservation Requests']])
+await go('/dean/room-timetables')
+const deanRoomOptions = [...document.querySelector('[aria-label="Room"]').options].map(o => o.textContent)
+ok('dean room timetables show institute rooms and public rooms only', deanRoomOptions.includes('AB 3-1') && deanRoomOptions.includes('AB 3-2') && deanRoomOptions.includes('AB 3-7'))
 ok('dean does not see other-institute request', !text().includes('Paolo Dizon'))
 const pend = [...store.reservationsForInstitute('ioc')].filter(r => r.status === 'Pending').sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0]
 const row = [...document.querySelectorAll('tbody tr')].find(tr => tr.textContent.includes('Review')); await click(row)

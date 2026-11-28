@@ -28,6 +28,7 @@ export const useAuthStore = defineStore('auth', {
       const role = f.roles.includes(this.activeRole) ? this.activeRole : f.role // role currently being viewed
       return {
         ...f,
+        photoUrl: this.account.photoUrl || '',
         role, primaryRole: f.role,
         roleLabel: roleLabel[role],
         program: programs.find((p) => p.id === f.programId)?.name || null,
@@ -40,6 +41,36 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     persistUsers() { localStorage.setItem(USERS_KEY, JSON.stringify(this.users)) },
+    updateProfilePhoto(photoUrl) {
+      const account = this.account
+      if (!account) return { ok: false, message: 'You must be logged in to update your photo.' }
+      const previousPhoto = account.photoUrl
+      account.photoUrl = photoUrl
+      try {
+        this.persistUsers()
+      } catch (error) {
+        account.photoUrl = previousPhoto
+        throw error
+      }
+      return { ok: true }
+    },
+    changePassword({ currentPassword, newPassword, confirmPassword }) {
+      const account = this.account
+      if (!account) return { ok: false, field: 'currentPassword', message: 'You must be logged in to change your password.' }
+      if (account.password !== currentPassword) return { ok: false, field: 'currentPassword', message: 'Current password is incorrect.' }
+      if (newPassword.length < 8) return { ok: false, field: 'newPassword', message: 'Use at least 8 characters.' }
+      if (!/\d/.test(newPassword) || !/[a-zA-Z]/.test(newPassword)) return { ok: false, field: 'newPassword', message: 'Include both letters and numbers.' }
+      if (newPassword !== confirmPassword) return { ok: false, field: 'confirmPassword', message: 'Passwords do not match.' }
+      const previousPassword = account.password
+      account.password = newPassword
+      try {
+        this.persistUsers()
+      } catch (error) {
+        account.password = previousPassword
+        throw error
+      }
+      return { ok: true }
+    },
     restoreSession() {
       const id = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY)
       if (id && this.users.some((u) => u.id === id)) { this.userId = id; this.activeRole = localStorage.getItem(ROLE_KEY) || sessionStorage.getItem(ROLE_KEY) }

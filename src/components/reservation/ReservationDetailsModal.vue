@@ -13,7 +13,7 @@ const props = defineProps({ open: Boolean, resId: String, mode: { type: String, 
 const emit = defineEmits(['close'])
 const store = useScheduleStore(), auth = useAuthStore(), toast = useToast()
 const rejecting = ref(false), reason = ref(''), err = ref(''), busy = ref(false)
-const flow = ref(null) // 'request-cancel' (instructor) | 'decline-cancel' (dean)
+const flow = ref(null) // 'request-cancel' (instructor)
 const confirm = ref(null) // 'approve' | 'cancel-pending' | 'approve-cancel'
 watch(() => props.open, (v) => { if (v) { rejecting.value = false; flow.value = null; reason.value = ''; err.value = ''; busy.value = false } })
 const r = computed(() => store.reservations.find((x) => x.id === props.resId))
@@ -64,11 +64,6 @@ async function approveCancel() {
   store.logEmail(r.value, mail, 'cancel-approved'); busy.value = false
   toast.info(`${inst.value.name} was notified by email.`)
 }
-function declineCancel() {
-  const res = store.declineCancellation(r.value.id, reason.value)
-  if (!res.ok) return (err.value = res.message)
-  toast.warning('Cancellation declined. The reservation stays active.'); flow.value = null
-}
 const row = 'flex justify-between gap-4 py-2 text-sm'
 const area = 'mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/25'
 const ghost = 'rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50'
@@ -106,8 +101,8 @@ const solid = 'rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-wh
       </div>
 
       <div v-if="rejecting || flow" class="mt-4">
-        <label class="text-sm font-medium text-slate-700">{{ rejecting ? 'Rejection reason' : flow === 'request-cancel' ? 'Why do you need to cancel?' : 'Reason for declining' }}
-          <textarea v-model="reason" rows="3" :class="area" :placeholder="flow === 'request-cancel' ? 'The Dean will see this reason' : 'Explain your decision'"></textarea></label>
+        <label class="text-sm font-medium text-slate-700">{{ rejecting ? 'Rejection reason' : 'Why do you need to cancel?' }}
+          <textarea v-model="reason" rows="3" :class="area" :placeholder="rejecting ? 'Explain your decision' : 'The Dean will see this reason'"></textarea></label>
         <p v-if="err" class="mt-1 text-sm text-red-600" role="alert">{{ err }}</p>
       </div>
       <p v-if="mode === 'instructor' && r.status === 'Approved' && isPast" class="mt-3 text-xs text-slate-500">This reservation date has passed, so it can no longer be cancelled.</p>
@@ -120,9 +115,8 @@ const solid = 'rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-wh
           <button :disabled="busy || conflicts.length > 0" :class="solid" @click="confirm = 'approve'">{{ busy ? 'Sending email…' : 'Approve' }}</button></template>
       </template>
       <template v-else-if="r && mode === 'dean' && r.status === 'Approved' && cancelPending">
-        <template v-if="flow === 'decline-cancel'"><button :class="ghost" @click="flow = null; err = ''">Back</button><button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700" @click="declineCancel">Confirm decline</button></template>
-        <template v-else><button class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50" @click="flow = 'decline-cancel'; reason = ''; err = ''">Decline cancellation</button>
-          <button :disabled="busy" :class="solid" @click="confirm = 'approve-cancel'">{{ busy ? 'Sending email…' : 'Approve cancellation' }}</button></template>
+        <button :class="ghost" @click="emit('close')">Close</button>
+        <button :disabled="busy" :class="solid" @click="confirm = 'approve-cancel'">{{ busy ? 'Sending email…' : 'Approve cancellation' }}</button>
       </template>
       <template v-else-if="r && mode === 'instructor' && r.status === 'Pending'"><button :class="ghost" @click="emit('close')">Close</button><button class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50" @click="confirm = 'cancel-pending'">Cancel request</button></template>
       <template v-else-if="r && mode === 'instructor' && r.status === 'Approved' && !isPast && !cancelPending">

@@ -37,7 +37,7 @@ const input = 'rounded-lg border border-slate-300 px-2.5 py-2 text-sm focus:bord
         <button v-for="r in visible" :key="r.id" type="button" @click="emit('pick', { roomId: r.id, classType })"
                 :class="['rounded-xl border p-4 text-left transition hover:shadow-md', r.id === recommended ? 'border-amber-400 bg-amber-50/60 ring-2 ring-amber-300' : 'border-slate-200 bg-white hover:border-emerald-500']">
           <div class="flex items-start justify-between gap-2"><p class="font-semibold text-slate-900">{{ r.name }}</p><StatusBadge v-if="r.id === recommended" status="Recommended" /></div>
-          <p class="mt-1 text-xs capitalize text-slate-500">{{ r.type }} · {{ r.category }}{{ r.category === 'exclusive' ? ' to your program' : '' }}</p>
+          <p class="mt-1 text-xs capitalize text-slate-500">{{ r.type }} · {{ r.category }}{{ r.category === 'exclusive' ? ' available to your program' : '' }}</p>
           <div class="mt-3 flex flex-wrap items-center gap-2"><StatusBadge status="Eligible" />
             <span class="text-xs text-slate-600">Capacity {{ r.capacity }}</span><span class="text-xs text-slate-400">{{ booked(r.id) }} weekly class{{ booked(r.id) === 1 ? '' : 'es' }}</span></div>
           <p v-if="r.capacity < set.size" class="mt-2 text-xs text-amber-700">Seats fewer than the {{ set.size }} students in this class set.</p>

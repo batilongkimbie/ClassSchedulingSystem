@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import * as seed from '../data/mockData'
-import { by, rooms, faculty, courses } from '../data/mockData'
+import { by, rooms, faculty, courses, programs } from '../data/mockData'
 import { DAYS, toMin, fmtTime, overlaps, visibleDays, dayIndexOf, todayISO } from '../utils/time'
 
 const KEY = 'css_schedule_v3'
@@ -50,11 +50,23 @@ export const useScheduleStore = defineStore('schedule', {
     instructorsForCourse(courseId, facultyIds) {
       return faculty.filter((f) => facultyIds.includes(f.id) && this.selectedCourses(f.id).includes(courseId))
     },
+    roomAllowedForPrograms(room, programIds) {
+      if (room.category === 'public') return true
+      const roomProgramIds = Array.isArray(room.programIds) ? room.programIds : []
+      return roomProgramIds.some((id) => programIds.includes(id))
+    },
+    roomAllowedForProgram(room, programId) {
+      return this.roomAllowedForPrograms(room, programId ? [programId] : [])
+    },
+    roomsForInstitute(instituteId) {
+      const programIds = programs.filter((p) => p.instituteId === instituteId).map((p) => p.id)
+      return rooms.filter((room) => this.roomAllowedForPrograms(room, programIds))
+    },
     instructorList() { return faculty.filter((f) => f.role === 'instructor' || this.classCourses.some((c) => c.instructorId === f.id)) },
     roomsForProgram(programId, classType) {
       return rooms.filter((r) => classType === 'laboratory'
-        ? r.type === 'laboratory' && r.category === 'exclusive' && r.programId === programId
-        : r.type === 'classroom' && (r.category === 'public' || r.programId === programId))
+        ? r.type === 'laboratory' && r.category === 'exclusive' && this.roomAllowedForProgram(r, programId)
+        : r.type === 'classroom' && this.roomAllowedForProgram(r, programId))
     },
 
     // ---- conflicts (only Approved reservations block; pending never does)
@@ -88,15 +100,17 @@ export const useScheduleStore = defineStore('schedule', {
       }
       return out
     },
-    validateAssignment({ ccId, roomId, classType, days, start, end, programId, ignoreId }) {
+    validateAssignment({ ccId, roomId, classType, days, start, end, ignoreId }) {
       const errs = [], cc = this.classCourses.find((c) => c.id === ccId), room = by.room(roomId)
       if (!room) return ['Select a room.']
+      if (!cc) return ['Select a class.']
       if (!days.length) errs.push('Select at least one day.')
       if (!start || !end) errs.push('Set both a start time and an end time.')
       else if (toMin(end) <= toMin(start)) errs.push('End time must be later than the start time.')
       else if (toMin(start) < 6 * 60 || toMin(end) > 22 * 60) errs.push('Classes must be between 6:00 AM and 10:00 PM.')
+      const programId = by.classSet(cc.classSetId)?.programId
       const allowed = this.roomsForProgram(programId, classType).some((r) => r.id === roomId)
-      if (!allowed) errs.push(`${room.name} cannot be used for ${classType} classes by your program.`)
+      if (!allowed) errs.push(`${room.name} cannot be used for ${classType} classes by this program.`)
       if (errs.length) return errs
       return [...this.roomConflicts({ roomId, days, start, end, ignoreId }),
         ...this.personConflicts({ instructorId: cc.instructorId, classSetId: cc.classSetId, days, start, end, ignoreId })]
@@ -165,7 +179,10 @@ export const useScheduleStore = defineStore('schedule', {
     },
     validateReservation({ instructorId, roomId, date, start, end, purpose, ignoreId }) {
       const e = []
-      if (!roomId) e.push('Select a classroom.')
+      const room = by.room(roomId)
+      if (!room || room.type !== 'classroom') e.push('Select a classroom.')
+      else if (!this.roomAllowedForProgram(room, by.faculty(instructorId)?.programId))
+        e.push(`${room.name} is not available to your program.`)
       if (!date) e.push('Choose a reservation date.')
       else if (date < todayISO()) e.push('The reservation date cannot be in the past.')
       else if (dayIndexOf(date) === 6) e.push('Reservations are not available on Sundays.')

@@ -5,7 +5,7 @@ import StatusBadge from '../ui/StatusBadge.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { useToast } from '../../composables/useToast'
-import { rooms, by } from '../../data/mockData'
+import { by } from '../../data/mockData'
 import { todayISO, dayOffset, toMin, fmtTime } from '../../utils/time'
 const props = defineProps({ open: Boolean, roomId: String })
 const emit = defineEmits(['close', 'submitted'])
@@ -13,7 +13,7 @@ const auth = useAuthStore(), store = useScheduleStore(), toast = useToast()
 const q = ref(''), room = ref(''), date = ref(''), start = ref(''), end = ref(''), purpose = ref(''), touched = ref(false)
 watch(() => props.open, (v) => { if (v) { q.value = ''; room.value = props.roomId || ''; date.value = dayOffset(1); start.value = ''; end.value = ''; purpose.value = ''; nextTick(() => (touched.value = false)) } })
 const dean = computed(() => store.deanFor(auth.user.id)) // fixed, instructors never choose
-const list = computed(() => rooms.filter((r) => r.name.toLowerCase().includes(q.value.toLowerCase())))
+const list = computed(() => store.roomsForProgram(auth.user.programId, 'discussion').filter((r) => r.name.toLowerCase().includes(q.value.toLowerCase())))
 const payload = computed(() => ({ instructorId: auth.user.id, roomId: room.value, date: date.value, start: start.value, end: end.value, purpose: purpose.value }))
 const errors = computed(() => (touched.value ? store.validateReservation(payload.value) : []))
 const dayEvents = computed(() => (room.value && date.value ? store.eventsForRoom(room.value, date.value, date.value).sort((a, b) => a.start.localeCompare(b.start)) : []))

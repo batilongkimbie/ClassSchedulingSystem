@@ -4,13 +4,17 @@ import WeeklyTimetable from '../../components/timetable/WeeklyTimetable.vue'
 import DateRangeBar from '../../components/timetable/DateRangeBar.vue'
 import StatusBadge from '../../components/ui/StatusBadge.vue'
 import EmptyState from '../../components/ui/EmptyState.vue'
+import { useAuthStore } from '../../stores/auth'
 import { useScheduleStore } from '../../stores/schedule'
 import { rooms, by } from '../../data/mockData'
 import { defaultRange, dayCols, fmtRange, fmtTime, fmtDate, DAYS, dayIndexOf } from '../../utils/time'
-const store = useScheduleStore()
-const range = ref(defaultRange()), q = ref(''), roomId = ref(rooms[0].id), selected = ref(null)
-const list = computed(() => rooms.filter((r) => r.name.toLowerCase().includes(q.value.toLowerCase())))
-watch(list, (l) => { if (l.length && !l.some((r) => r.id === roomId.value)) roomId.value = l[0].id })
+const auth = useAuthStore(), store = useScheduleStore()
+const range = ref(defaultRange()), q = ref(''), roomId = ref(''), selected = ref(null)
+const eligibleRooms = computed(() => auth.user.role === 'dean'
+  ? store.roomsForInstitute(auth.user.instituteId)
+  : rooms.filter((r) => store.roomAllowedForProgram(r, auth.user.programId)))
+const list = computed(() => eligibleRooms.value.filter((r) => r.name.toLowerCase().includes(q.value.toLowerCase())))
+watch(list, (l) => { if (!l.some((r) => r.id === roomId.value)) roomId.value = l[0]?.id || '' }, { immediate: true })
 const room = computed(() => by.room(roomId.value))
 const cols = computed(() => dayCols(range.value.from, range.value.to))
 const events = computed(() => (room.value ? store.eventsForRoom(roomId.value, range.value.from, range.value.to) : []))

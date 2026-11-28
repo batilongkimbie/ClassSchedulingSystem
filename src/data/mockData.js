@@ -55,6 +55,7 @@ export const seedUsers = [
   { id: 'u9', facultyId: 'f9', email: 'jane.doe@dnsc.edu.ph', password: 'password123' },
   { id: 'u10', facultyId: 'f10', email: 'john.doe@dnsc.edu.ph', password: 'password123' },
   { id: 'u11', facultyId: 'f11', email: 'ramon.t@dnsc.edu.ph', password: 'password123' },
+  
 ]
 export const courses = [
   { id: 'c1', code: 'IT 312', title: 'Integrative Programming and Technologies 1', units: 3, programId: 'bsit', year: 3 },
@@ -69,6 +70,7 @@ export const courses = [
   { id: 'c10', code: 'IT 212', title: 'Object-Oriented Programming 2', units: 3, programId: 'bsit', year: 2 },
   { id: 'c11', code: 'MS 122', title: 'Discrete Mathematics', units: 3, programId: 'bsit', year: 2 },
   { id: 'c12', code: 'IT 221', title: 'Data Structures and Algorithms', units: 3, programId: 'bsit', year: 2 },
+  { id: 'c13', code: 'MB 211', title: 'Intro to Marine Biology', units: 3, programId: 'bsmb', year: 1 },
 ]
 export const classSets = [
   { id: 's1', name: 'BSIT 1-A', programId: 'bsit', year: 1, size: 35 },
@@ -78,21 +80,22 @@ export const classSets = [
   { id: 's5', name: 'BSIT 3-B', programId: 'bsit', year: 3, size: 30 },
   { id: 's6', name: 'BSIT 3-C', programId: 'bsit', year: 3, size: 30 },
   { id: 's7', name: 'BSIS 2-A', programId: 'bsis', year: 2, size: 28 },
+  { id: 's8', name: 'BSMB 1-A', programId: 'bsmb', year: 1, size: 25 },
 ]
-// type: classroom | laboratory ; category: exclusive (has programId) | public
+// Restricted rooms are available to the listed programs; public rooms are available to all programs.
 export const rooms = [
-  { id: 'r1', name: 'AES', type: 'classroom', category: 'exclusive', programId: 'bsit', capacity: 40 },
-  { id: 'r2', name: 'Networking Lab', type: 'classroom', category: 'exclusive', programId: 'bsit', capacity: 36 },
-  { id: 'r3', name: 'Comlab 1', type: 'laboratory', category: 'exclusive', programId: 'bsit', capacity: 35 },
-  { id: 'r4', name: 'Comlab 2', type: 'laboratory', category: 'exclusive', programId: 'bsit', capacity: 30 },
-  { id: 'r5', name: 'Mac Lab', type: 'laboratory', category: 'exclusive', programId: 'bsit', capacity: 32 },
-  { id: 'r6', name: 'AB 3-1', type: 'classroom', category: 'exclusive', programId: 'bsis', capacity: 45 },
-  { id: 'r7', name: 'AB 3-2', type: 'laboratory', category: 'exclusive', programId: 'bsis', capacity: 30 },
-  { id: 'r8', name: 'AB 3-3', type: 'classroom', category: 'public', programId: null, capacity: 50 },
-  { id: 'r9', name: 'AB 3-4', type: 'classroom', category: 'public', programId: null, capacity: 45 },
-  { id: 'r10', name: 'AB 3-5', type: 'classroom', category: 'public', programId: null, capacity: 60 },
-  { id: 'r11', name: 'AB 3-6', type: 'classroom', category: 'public', programId: null, capacity: 40 },
-  { id: 'r12', name: 'AB 3-7', type: 'classroom', category: 'public', programId: null, capacity: 120 },
+  { id: 'r1', name: 'AES', type: 'classroom', category: 'exclusive', programIds: ['bsit'], capacity: 40 },
+  { id: 'r2', name: 'Networking Lab', type: 'classroom', category: 'exclusive', programIds: ['bsit'], capacity: 36 },
+  { id: 'r3', name: 'Comlab 1', type: 'laboratory', category: 'exclusive', programIds: ['bsit'], capacity: 35 },
+  { id: 'r4', name: 'Comlab 2', type: 'laboratory', category: 'exclusive', programIds: ['bsit'], capacity: 30 },
+  { id: 'r5', name: 'Mac Lab', type: 'laboratory', category: 'exclusive', programIds: ['bsit'], capacity: 32 },
+  { id: 'r6', name: 'AB 3-1', type: 'classroom', category: 'exclusive', programIds: ['bsis', 'bsit'], capacity: 45 },
+  { id: 'r7', name: 'AB 3-2', type: 'laboratory', category: 'exclusive', programIds: ['bsis'], capacity: 30 },
+  { id: 'r8', name: 'AB 3-3', type: 'classroom', category: 'public', programIds: [], capacity: 50 },
+  { id: 'r9', name: 'AB 3-4', type: 'classroom', category: 'exclusive', programIds: ['bsmb'], capacity: 45 },
+  { id: 'r10', name: 'AB 3-5', type: 'classroom', category: 'public', programIds: [], capacity: 60 },
+  { id: 'r11', name: 'AB 3-6', type: 'classroom', category: 'public', programIds: [], capacity: 40 },
+  { id: 'r12', name: 'AB 3-7', type: 'classroom', category: 'public', programIds: [], capacity: 120 },
 ]
 const ago = (h) => new Date(Date.now() - h * 3600e3).toISOString()
 // A class set taking a course; instructor optional until assigned
@@ -111,7 +114,7 @@ export const classCourses = [
 export const assignments = [
   { id: 'a1', ccId: 'cc2', roomId: 'r2', classType: 'discussion', days: [0, 3], start: '18:00', end: '19:30' },
   { id: 'a2', ccId: 'cc3', roomId: 'r12', classType: 'discussion', days: [1, 3], start: '13:00', end: '14:30' },
-  { id: 'a3', ccId: 'cc4', roomId: 'r11', classType: 'discussion', days: [2], start: '10:00', end: '10:30' },
+  { id: 'a3', ccId: 'cc4', roomId: 'r11', classType: 'discussion', days: [2], start: '10:00', end: '11:30' },
   { id: 'a4', ccId: 'cc5', roomId: 'r12', classType: 'discussion', days: [2], start: '13:00', end: '14:30' },
   { id: 'a5', ccId: 'cc1', roomId: 'r1', classType: 'discussion', days: [2], start: '15:30', end: '16:30' },
   { id: 'a6', ccId: 'cc1', roomId: 'r3', classType: 'laboratory', days: [2], start: '16:30', end: '18:00' },
@@ -149,7 +152,7 @@ export const facultyCourses = {
   f8: ['c5'],
   f9: ['c7'],
   f10: ['c11'],
-  f11: ['c9'],
+  f11: ['c13'],
 }
 export const notifications = [
   { id: 'n1', facultyId: 'f2', text: 'Roanne Anunciado requested the Audio-Visual Room.', at: ago(10), read: false },

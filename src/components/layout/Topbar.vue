@@ -50,7 +50,8 @@ onBeforeUnmount(() => document.removeEventListener('click', outside))
 
     <div class="relative">
       <button class="flex items-center gap-2.5 rounded-lg p-1.5 pr-2 hover:bg-slate-100" aria-haspopup="menu" @click.stop="toggle('profile')">
-        <span class="grid h-9 w-9 place-items-center rounded-full bg-emerald-700 text-sm font-semibold text-white">{{ auth.user.initials }}</span>
+        <img v-if="auth.user.photoUrl" :src="auth.user.photoUrl" alt="" class="h-9 w-9 rounded-full object-cover" />
+        <span v-else class="grid h-9 w-9 place-items-center rounded-full bg-emerald-700 text-sm font-semibold text-white">{{ auth.user.initials }}</span>
         <span class="hidden text-left leading-tight sm:block">
           <span class="block text-sm font-medium text-slate-900">{{ auth.user.name }}</span>
           <span class="block text-xs text-slate-500">{{ auth.user.roleLabel }}<template v-if="auth.user.roles.length > 1"> view</template></span>
