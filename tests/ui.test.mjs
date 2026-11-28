@@ -22,12 +22,15 @@ const bx = (label) => [...document.querySelectorAll('button')].filter(b => b.tex
 const setVal = async (el, v, ev = 'input') => { el.value = v; el.dispatchEvent(new window.Event(ev, { bubbles: true })); await wait(10) }
 const busyPreviewOpen = ref(false), busyPreviewRoot = document.createElement('div')
 document.body.append(busyPreviewRoot)
+const originalInstructorId = store.classCourses.find(c => c.id === 'cc4').instructorId
+const assignedProgramlessInstructor = store.assignInstructor('cc4', 'f21')
 const busyPreviewApp = createApp({ setup: () => () => h(RoomAssignmentModal, { open: busyPreviewOpen.value, ccId: 'cc4', roomId: 'r11', classType: 'discussion' }) })
 busyPreviewApp.use(pinia); busyPreviewApp.mount(busyPreviewRoot)
 busyPreviewOpen.value = true; await nextTick(); await wait()
-const busyBlock = [...document.querySelectorAll('[data-busy-event]')].find((e) => e.title.includes('Networking Lab'))
-ok('class timetable marks an existing class from another room', busyBlock?.classList.contains('bg-slate-300/75'))
+const busyBlock = [...document.querySelectorAll('[data-busy-event]')].find((e) => e.title.includes('GEELECT 1'))
+ok('program-less instructor schedule from another class set appears in the assignment preview', assignedProgramlessInstructor.ok && busyBlock?.classList.contains('bg-slate-300/75'))
 busyPreviewOpen.value = false; await nextTick(); busyPreviewApp.unmount(); busyPreviewRoot.remove()
+store.assignInstructor('cc4', originalInstructorId)
 
 const reservationTestPinia = createPinia(), reservationTestAuth = useAuthStore(reservationTestPinia)
 reservationTestAuth.userId = reservationTestAuth.users.find((u) => u.facultyId === 'f3')?.id

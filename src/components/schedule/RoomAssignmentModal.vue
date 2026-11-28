@@ -50,10 +50,13 @@ const events = computed(() => {
 })
 const busyEvents = computed(() => {
   if (!props.open || !set.value) return []
-  return store.eventsForClassSet(set.value.id)
-    .filter((e) => !props.assignmentId || !e.id.startsWith(`${props.assignmentId}-`))
+  const classSetEvents = store.eventsForClassSet(set.value.id)
     .map((e) => ({ ...e, col: cols[DAYS.indexOf(e.col)]?.key }))
-    .filter((e) => e.col)
+  const instructorEvents = cc.value?.instructorId
+    ? store.eventsForInstructor(cc.value.instructorId, week.from, week.to).filter((e) => e.kind === 'class')
+    : []
+  return [...new Map([...classSetEvents, ...instructorEvents].map((e) => [e.id, e])).values()]
+    .filter((e) => e.col && (!props.assignmentId || !e.id.startsWith(`${props.assignmentId}-`)))
 })
 function save() {
   touched.value = true
@@ -109,7 +112,7 @@ const input = 'rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border
       <section class="min-w-0">
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2"><h3 class="text-sm font-semibold text-slate-900">Weekly timetable: {{ room?.name || 'Select a room' }}</h3><span class="text-xs text-slate-500">Week of {{ fmtDate(week.from) }} – {{ fmtDate(week.to) }}</span></div>
         <WeeklyTimetable :days="cols" :events="events" :busy-events="busyEvents" />
-        <p class="mt-2 flex flex-wrap gap-x-4 text-xs text-slate-500"><span>■ <span class="text-slate-500">Class already scheduled (any room)</span></span><span>■ <span class="text-emerald-600">Discussion</span></span><span>■ <span class="text-sky-600">Laboratory</span></span><span>■ <span class="text-amber-500">Reservation</span></span><span>▢ Your new assignment</span></p>
+        <p class="mt-2 flex flex-wrap gap-x-4 text-xs text-slate-500"><span>■ <span class="text-slate-500">Class set or instructor already scheduled</span></span><span>■ <span class="text-emerald-600">Discussion</span></span><span>■ <span class="text-sky-600">Laboratory</span></span><span>■ <span class="text-amber-500">Reservation</span></span><span>▢ Your new assignment</span></p>
       </section>
     </div>
     <template #footer>
